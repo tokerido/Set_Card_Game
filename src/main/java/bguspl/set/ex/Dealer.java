@@ -107,6 +107,8 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement
+        //modify sync (PS6) 
+        //this is done by a player that placed 3 tokens (check for set and give a point or penalty for player) or by timeout (reshuffle deck)
     }
 
     /**
