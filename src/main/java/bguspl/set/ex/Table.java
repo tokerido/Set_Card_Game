@@ -29,6 +29,10 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
+    protected final Integer[] playerNumOfTokens; // new field
+    protected final Integer[] slotToPlayer1; // new field
+    protected final Integer[] slotToPlayer2; // new field
+
     /**
      * Constructor for testing.
      *
@@ -36,11 +40,14 @@ public class Table {
      * @param slotToCard - mapping between a slot and the card placed in it (null if none).
      * @param cardToSlot - mapping between a card and the slot it is in (null if none).
      */
-    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot) {
+    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot,Integer[] playerNumOfTokens, Integer[] slotToPlayer1,Integer[] slotToPlayer2) {
 
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
+        this.playerNumOfTokens = playerNumOfTokens;
+        this.slotToPlayer1 = slotToPlayer1;
+        this.slotToPlayer2 = slotToPlayer2; //mabye as a list + array
     }
 
     /**
@@ -50,7 +57,7 @@ public class Table {
      */
     public Table(Env env) {
 
-        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize]);
+        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize], new Integer[env.config.players], new Integer[env.config.tableSize],new Integer[env.config.tableSize]);
     }
 
     /**
@@ -92,8 +99,13 @@ public class Table {
         } catch (InterruptedException ignored) {}
 
         //our code start here
-        cardToSlot[card] = slot;
-        slotToCard[slot] = card;
+        synchronized(this) { // need to put synchronized on the dellar placecard too!
+            if(slotToCard[slot] == null) {
+                cardToSlot[card] = slot;
+                slotToCard[slot] = card;
+                env.ui.placeCard(card, slot); 
+            }
+        }
 
         // TODO implement
     }
@@ -108,10 +120,11 @@ public class Table {
         } catch (InterruptedException ignored) {}
 
         //our code start here
-        syncronize(this){ // check if it works
+        synchronized(this){ // need to put synchronized on the dellar placecard too!
             int card = slotToCard[slot];
             cardToSlot[card] = null;
             slotToCard[slot] = null;
+            env.ui.removeCard(slot);
         }
         
         // TODO implement
@@ -123,13 +136,20 @@ public class Table {
      * @param player - the player the token belongs to.
      * @param slot   - the slot on which to place the token.
      */
-    public void placeToken(int player, int slot) {
-        // here we should get the player with the id (int player), and place its token on the slot
-        //update the number of tokens
-        // if this is the third token of the player, send the set to the dealer for a check???
-
-
+    public synchronized void placeToken(int player, int slot) {
         // TODO implement
+        // player.get(player);
+        if((playerNumOfTokens[player] < 3) && (cardToSlot[slot] != null))
+        {
+        slotToPlayer1[slot] = player;
+        playerNumOfTokens[player]++;
+        env.ui.placeToken(player,slot);
+        }
+       // if(playerNumOfTokens == 3)
+         //   {
+            //update the number of tokens
+         // if this is the third token of the player, send the set to the dealer for a check???
+          //  }
     }
 
     /**
@@ -138,12 +158,17 @@ public class Table {
      * @param slot   - the slot from which to remove the token.
      * @return       - true iff a token was successfully removed.
      */
-    public boolean removeToken(int player, int slot) {
+    public synchronized boolean removeToken(int player, int slot) {
+        // TODO implement
         //delete token from slot(slot)
         //update the number of tokens
         //return true if token was removed, else return false
-
-        // TODO implement
+        if(slotToCard != null)
+        {
+           slotToPlayer1[slot] = null;
+           env.ui.removeToken(player, slot);
+           playerNumOfTokens[player]--;
+        }
         return false;
     }
 }
