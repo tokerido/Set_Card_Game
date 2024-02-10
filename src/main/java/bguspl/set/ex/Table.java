@@ -169,7 +169,6 @@ public class Table {
         //return true if token was removed, else return false
         if(slotToCard != null)
         {
-            player.
            env.ui.removeToken(player, slot);
            playerNumOfTokens[player]--;
         }
