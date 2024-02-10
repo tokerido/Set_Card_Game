@@ -30,8 +30,6 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     protected final Integer[] playerNumOfTokens; // new field
-    protected final Integer[] slotToPlayer1; // new field
-    protected final Integer[] slotToPlayer2; // new field
 
     /**
      * Constructor for testing.
@@ -40,14 +38,12 @@ public class Table {
      * @param slotToCard - mapping between a slot and the card placed in it (null if none).
      * @param cardToSlot - mapping between a card and the slot it is in (null if none).
      */
-    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot,Integer[] playerNumOfTokens, Integer[] slotToPlayer1,Integer[] slotToPlayer2) {
+    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot,Integer[] playerNumOfTokens) {
 
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
         this.playerNumOfTokens = playerNumOfTokens;
-        this.slotToPlayer1 = slotToPlayer1;
-        this.slotToPlayer2 = slotToPlayer2; //mabye as a list + array
     }
 
     /**
@@ -57,7 +53,7 @@ public class Table {
      */
     public Table(Env env) {
 
-        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize], new Integer[env.config.players], new Integer[env.config.tableSize],new Integer[env.config.tableSize]);
+        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize], new Integer[env.config.players]);
     }
 
     /**
@@ -121,16 +117,26 @@ public class Table {
 
         //our code start here
         synchronized(this){ // need to put synchronized on the dellar placecard too!
-            int card = slotToCard[slot];
-            cardToSlot[card] = null;
-            slotToCard[slot] = null;
-            env.ui.removeCard(slot);
+            if(slotToCard != null) {
+                int card = slotToCard[slot];
+                cardToSlot[card] = null;
+                slotToCard[slot] = null;
+                env.ui.removeCard(slot);
+            }
         }
         
         // TODO implement
         
     }
-
+    /**
+     * checks if a player can place the Token
+     * @param slot   - the slot on which to place the token.
+     */
+     public boolean isTokenLegal(int slot) {
+        if(slotToCard[slot] == null)
+            return false;
+        return true;
+     }
     /**
      * Places a player token on a grid slot.
      * @param player - the player the token belongs to.
@@ -138,12 +144,10 @@ public class Table {
      */
     public synchronized void placeToken(int player, int slot) {
         // TODO implement
-        // player.get(player);
-        if((playerNumOfTokens[player] < 3) && (cardToSlot[slot] != null))
+        if(isTokenLegal(slot) && (playerNumOfTokens[player] < 3) )
         {
-        slotToPlayer1[slot] = player;
-        playerNumOfTokens[player]++;
-        env.ui.placeToken(player,slot);
+            playerNumOfTokens[player]++;
+            env.ui.placeToken(player,slot);
         }
        // if(playerNumOfTokens == 3)
          //   {
@@ -165,7 +169,7 @@ public class Table {
         //return true if token was removed, else return false
         if(slotToCard != null)
         {
-           slotToPlayer1[slot] = null;
+            player.
            env.ui.removeToken(player, slot);
            playerNumOfTokens[player]--;
         }
