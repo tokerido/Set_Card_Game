@@ -1,5 +1,13 @@
 package bguspl.set.ex;
 
+import java.util.HashSet;
+import java.util.Hashtable;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.Set;
+
+import javax.swing.text.html.HTMLDocument.Iterator;
+
 import bguspl.set.Env;
 
 /**
@@ -50,6 +58,9 @@ public class Player implements Runnable {
      */
     private int score;
 
+    private Set<Integer> myCards; //new field to hold players cards. 
+    private Queue<Integer> actions; //new field to hold the actions we need to do.
+
     /**
      * The class constructor.
      *
@@ -64,6 +75,8 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
+        myCards = new HashSet<>(3);
+        actions = new LinkedList<>();
     }
 
     /**
@@ -77,7 +90,27 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO implement main player loop
-        }
+            try {
+                synchronized(playerThread) {
+                    while (actions.isEmpty()) {
+                        playerThread.wait();
+                    }
+                    int slot = actions.poll();
+                    if (myCards.remove(slot)) {
+                        table.removeToken(id, slot);
+                    } else if (myCards.size() < 3) {
+                        myCards.add(slot);
+                        table.placeToken(id, slot);
+                    }
+                    playerThread.notifyAll();
+                }
+            } catch (InterruptedException e) {
+                // TODO: handle exception
+            }
+            
+            
+            
+         }
         if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
@@ -92,6 +125,7 @@ public class Player implements Runnable {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
             while (!terminate) {
                 // TODO implement player key press simulator
+
                 try {
                     synchronized (this) { wait(); }
                 } catch (InterruptedException ignored) {}
@@ -106,6 +140,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement
+        terminate = true;
     }
 
     /**
@@ -115,6 +150,17 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
+        // if (myCards.size() < 3) {
+        //     if(table.isTokenLegal(slot)){
+        //         myCards.add(slot);
+        //         table.placeToken(id, slot);
+        //     }
+            
+        // } else if (myCards.remove(slot)) {
+        //     table.removeToken(id, slot);
+        // }
+        actions.add(slot);
+        playerThread.notifyAll();
     }
 
     /**
@@ -125,9 +171,19 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-
-        int ignored = table.countCards(); // this part is just for demonstration in the unit tests
-        env.ui.setScore(id, ++score);
+        try {
+            synchronized(playerThread){
+                myCards.clear();
+                int ignored = table.countCards(); // this part is just for demonstration in the unit tests
+                env.ui.setScore(id, ++score); //update score
+                score += 1;
+                Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
+                playerThread.notifyAll();
+            }
+        } catch (InterruptedException ignored) {
+            // TODO: handle exception
+        }
+        
     }
 
     /**
@@ -135,9 +191,28 @@ public class Player implements Runnable {
      */
     public void penalty() {
         // TODO implement
+        try {
+            synchronized(playerThread){
+                Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
+                playerThread.notifyAll();
+            } 
+        } catch (InterruptedException ignored) {
+            // TODO: handle exception
+        }
+        
     }
 
     public int score() {
         return score;
+    }
+
+    public int[] getSet() {
+        int[] slots = new int[3];
+        int i = 0;
+        for (int slot : myCards) {
+            slots[i] = slot;
+            i++;
+        }
+        return slots;
     }
 }
