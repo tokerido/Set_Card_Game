@@ -5,6 +5,10 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicIntegerArray;
 
 import javax.swing.text.html.HTMLDocument.Iterator;
 
@@ -22,6 +26,8 @@ public class Player implements Runnable {
      * The game environment object.
      */
     private final Env env;
+
+    private final Dealer dealer; //dealer field
 
     /**
      * Game entities.
@@ -61,6 +67,8 @@ public class Player implements Runnable {
     private Set<Integer> myCards; //new field to hold players cards. 
     private Queue<Integer> actions; //new field to hold the actions we need to do.
 
+
+
     /**
      * The class constructor.
      *
@@ -72,11 +80,12 @@ public class Player implements Runnable {
      */
     public Player(Env env, Dealer dealer, Table table, int id, boolean human) {
         this.env = env;
+        this.dealer = dealer;
         this.table = table;
         this.id = id;
         this.human = human;
-        myCards = new HashSet<>(3);
-        actions = new LinkedList<>();
+        myCards = new ConcurrentSkipListSet<>();
+        actions = new ConcurrentLinkedQueue<>();
     }
 
     /**
@@ -150,17 +159,10 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-        // if (myCards.size() < 3) {
-        //     if(table.isTokenLegal(slot)){
-        //         myCards.add(slot);
-        //         table.placeToken(id, slot);
-        //     }
-            
-        // } else if (myCards.remove(slot)) {
-        //     table.removeToken(id, slot);
-        // }
-        actions.add(slot);
-        playerThread.notifyAll();
+        synchronized (playerThread){
+            actions.add(slot);
+            playerThread.notifyAll();
+        }
     }
 
     /**
@@ -178,7 +180,7 @@ public class Player implements Runnable {
                 env.ui.setScore(id, ++score); //update score
                 score += 1;
                 Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
-                playerThread.notifyAll();
+                //playerThread.notifyAll();
             }
         } catch (InterruptedException ignored) {
             // TODO: handle exception
@@ -194,8 +196,8 @@ public class Player implements Runnable {
         try {
             synchronized(playerThread){
                 Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
-                playerThread.notifyAll();
-            } 
+                //playerThread.notifyAll();
+            }
         } catch (InterruptedException ignored) {
             // TODO: handle exception
         }
@@ -207,12 +209,18 @@ public class Player implements Runnable {
     }
 
     public int[] getSet() {
-        int[] slots = new int[3];
-        int i = 0;
-        for (int slot : myCards) {
-            slots[i] = slot;
-            i++;
-        }
-        return slots;
+        try{
+           synchronized (playerThread) {
+               int[] slots = new int[3];
+               int i = 0;
+               for (int slot : myCards) {
+                   slots[i] = slot;
+                   i++;
+               }
+               playerThread.notifyAll();
+               return slots;
+           }
+        } catch (Exception ignored) {} //check this
+        return null;
     }
 }

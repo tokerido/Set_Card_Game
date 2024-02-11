@@ -100,6 +100,12 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         // TODO implement
+
+        for (int i : table.slotToCard) {
+            if (table.slotToCard[i] == null) {
+
+            }
+        }
     }
 
     /**
