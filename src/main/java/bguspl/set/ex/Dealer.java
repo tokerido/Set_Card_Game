@@ -3,6 +3,8 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -100,10 +102,13 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         // TODO implement
-
-        for (int i : table.slotToCard) {
-            if (table.slotToCard[i] == null) {
-
+        for (int i = 0 ; i < 12 ; i++) {
+            int rndCard = (int)(Math.random() * deck.size());
+            synchronized (this) {
+                if (table.slotToCard[i] == null) {
+                    int card = deck.remove(rndCard);
+                    table.placeCard(card, i);
+                }
             }
         }
     }
