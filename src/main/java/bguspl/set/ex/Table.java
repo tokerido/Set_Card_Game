@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -30,6 +31,8 @@ public class Table {
     protected final Integer[] cardToSlot; // slot per card (if any)
 
     protected final Integer[] playerNumOfTokens; // new field
+    protected final ArrayList<ArrayList<Integer>> playersToTokens; // new field
+
 
     /**
      * Constructor for testing.
@@ -37,13 +40,18 @@ public class Table {
      * @param env        - the game environment objects.
      * @param slotToCard - mapping between a slot and the card placed in it (null if none).
      * @param cardToSlot - mapping between a card and the slot it is in (null if none).
+     * @param playersToTokens - mapping between a player and the slot he picked (null if none).
      */
-    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot,Integer[] playerNumOfTokens) {
+    public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot) {
 
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
-        this.playerNumOfTokens = playerNumOfTokens;
+        this.playerNumOfTokens = new Integer[env.config.players];
+        this.playersToTokens = new ArrayList<>(env.config.players);
+        for (ArrayList<Integer> element : playersToTokens) {
+            playersToTokens.add(new ArrayList<Integer>(3));  
+        }
     }
 
     /**
@@ -53,7 +61,7 @@ public class Table {
      */
     public Table(Env env) {
 
-        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize], new Integer[env.config.players]);
+        this(env, new Integer[env.config.tableSize], new Integer[env.config.deckSize]);
     }
 
     /**
@@ -93,7 +101,7 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-
+        // TODO implement
         //our code start here
         synchronized(this) { // need to put synchronized on the dellar placecard too!
             if(slotToCard[slot] == null) {
@@ -103,7 +111,6 @@ public class Table {
             }
         }
 
-        // TODO implement
     }
 
     /**
@@ -114,7 +121,7 @@ public class Table {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
-
+        // TODO implement
         //our code start here
         synchronized(this){ // need to put synchronized on the dellar placecard too!
             if(slotToCard != null) {
@@ -124,9 +131,6 @@ public class Table {
                 env.ui.removeCard(slot);
             }
         }
-        
-        // TODO implement
-        
     }
     /**
      * checks if a player can place the Token
@@ -146,14 +150,10 @@ public class Table {
         // TODO implement
         if(isTokenLegal(slot) && (playerNumOfTokens[player] < 3) )
         {
+            playersToTokens.get(player).add(slot);
             playerNumOfTokens[player]++;
             env.ui.placeToken(player,slot);
         }
-       // if(playerNumOfTokens == 3)
-         //   {
-            //update the number of tokens
-         // if this is the third token of the player, send the set to the dealer for a check???
-          //  }
     }
 
     /**
@@ -164,13 +164,15 @@ public class Table {
      */
     public synchronized boolean removeToken(int player, int slot) {
         // TODO implement
-        //delete token from slot(slot)
-        //update the number of tokens
-        //return true if token was removed, else return false
         if(slotToCard != null)
         {
+            for(int i = 0; i < playersToTokens.get(player).size(); i++) {
+                if(playersToTokens.get(player).get(i) == slot)
+                    playersToTokens.get(player).remove(i);
+            }
            env.ui.removeToken(player, slot);
            playerNumOfTokens[player]--;
+           return true;
         }
         return false;
     }

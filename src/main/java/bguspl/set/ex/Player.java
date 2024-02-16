@@ -87,6 +87,7 @@ public class Player implements Runnable {
         myCards = new ConcurrentSkipListSet<>();
         actions = new ConcurrentLinkedQueue<>();
     }
+    
 
     /**
      * The main player thread of each player starts here (main loop for the player thread).
@@ -111,6 +112,10 @@ public class Player implements Runnable {
                         myCards.add(slot);
                         table.placeToken(id, slot);
                     }
+                    if(myCards.size() == 3) {
+                        dealer.getStetFromPlayer(this.id);
+                    }
+                        
                     playerThread.notifyAll();
                 }
             } catch (InterruptedException e) {

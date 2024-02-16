@@ -1,6 +1,7 @@
 package bguspl.set.ex;
 
 import bguspl.set.Env;
+import bguspl.set.UtilImpl;
 
 import java.util.List;
 import java.util.Random;
@@ -141,5 +142,12 @@ public class Dealer implements Runnable {
      */
     private void announceWinners() {
         // TODO implement
+    }
+    public void getStetFromPlayer(int player) {
+        int[] set_check = players[player].getSet();
+        if(env.util.testSet(set_check))
+            players[player].point();
+        else
+            players[player].penalty();
     }
 }
