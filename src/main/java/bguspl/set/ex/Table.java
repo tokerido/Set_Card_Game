@@ -48,8 +48,9 @@ public class Table {
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
         this.playerNumOfTokens = new Integer[env.config.players];
+        Arrays.fill(playerNumOfTokens, 0);
         this.playersToTokens = new ArrayList<>(env.config.players);
-        for (ArrayList<Integer> element : playersToTokens) {
+        for (int i = 0; i < env.config.players; i++) {
             playersToTokens.add(new ArrayList<Integer>(3));  
         }
     }

@@ -100,10 +100,10 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO implement main player loop
-            try {
-                synchronized(playerThread) {
+//            try {
+//                synchronized(playerThread) {
                     while (actions.isEmpty()) {
-                        playerThread.wait();
+//                        playerThread.wait();
                     }
                     int slot = actions.poll();
                     if (myCards.remove(slot)) {
@@ -115,12 +115,12 @@ public class Player implements Runnable {
                     if(myCards.size() == 3) {
                         dealer.getStetFromPlayer(this.id);
                     }
-                        
-                    playerThread.notifyAll();
-                }
-            } catch (InterruptedException e) {
-                // TODO: handle exception
-            }
+
+//                    playerThread.notifyAll();
+//            }
+//            } catch (InterruptedException e) {
+//                // TODO: handle exception
+//            }
             
             
             
@@ -164,10 +164,10 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-        synchronized (playerThread){
+//        synchronized (playerThread){
             actions.add(slot);
-            playerThread.notifyAll();
-        }
+//            playerThread.notifyAll();
+//        }
     }
 
     /**
@@ -178,18 +178,18 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-        try {
-            synchronized(playerThread){
+//        try {
+//            synchronized(playerThread){
                 myCards.clear();
                 int ignored = table.countCards(); // this part is just for demonstration in the unit tests
                 env.ui.setScore(id, ++score); //update score
                 score += 1;
-                Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
-                //playerThread.notifyAll();
-            }
-        } catch (InterruptedException ignored) {
-            // TODO: handle exception
-        }
+//                Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
+//                playerThread.notifyAll();
+//            }
+//        } catch (InterruptedException ignored) {
+//            // TODO: handle exception
+//        }
         
     }
 
@@ -197,15 +197,15 @@ public class Player implements Runnable {
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-        // TODO implement
-        try {
-            synchronized(playerThread){
-                Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
-                //playerThread.notifyAll();
-            }
-        } catch (InterruptedException ignored) {
-            // TODO: handle exception
-        }
+         //TODO implement
+//        try {
+//            synchronized(playerThread){
+//                Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
+//                playerThread.notifyAll();
+//            }
+//        } catch (InterruptedException ignored) {
+//            // TODO: handle exception
+//        }
         
     }
 
@@ -214,18 +214,18 @@ public class Player implements Runnable {
     }
 
     public int[] getSet() {
-        try{
-           synchronized (playerThread) {
+//        try{
+//           synchronized (playerThread) {
                int[] slots = new int[3];
                int i = 0;
                for (int slot : myCards) {
                    slots[i] = slot;
                    i++;
                }
-               playerThread.notifyAll();
+//               playerThread.notifyAll();
                return slots;
-           }
-        } catch (Exception ignored) {} //check this
-        return null;
+//           }
+//        } catch (Exception ignored) {} //check this
+//        return null;
     }
 }

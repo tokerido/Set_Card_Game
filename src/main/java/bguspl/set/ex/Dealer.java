@@ -39,12 +39,17 @@ public class Dealer implements Runnable {
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     private long reshuffleTime = Long.MAX_VALUE;
+    private int[] winingSet = new int[3];
+    private Object winner;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        for (int i = 0; i < winingSet.length; i++) {
+            winingSet[i] = -1;
+        }
     }
 
     /**
@@ -53,6 +58,10 @@ public class Dealer implements Runnable {
     @Override
     public void run() {
         env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
+        for (Player player : players) {
+            Thread playerThread = new Thread(player);
+            playerThread.start();
+        }
         while (!shouldFinish()) {
             placeCardsOnTable();
             timerLoop();
@@ -96,6 +105,13 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         // TODO implement
+        for (int i = 0;  i < winingSet.length; i++) {
+            if(winingSet[i] != -1){
+                table.removeCard(winingSet[i]);
+                winingSet[i] = -1;
+            }
+        }
+
     }
 
     /**
@@ -128,6 +144,11 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement
+        if(reset) {
+            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+        } else {
+            env.ui.setCountdown(System.currentTimeMillis(), System.currentTimeMillis() <= env.config.turnTimeoutMillis);
+        }
     }
 
     /**
@@ -135,6 +156,13 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         // TODO implement
+        for (int i = 0; i < 12; i++) {
+            synchronized (this) {
+                if (table.slotToCard[i] != null) {
+                    table.removeCard(i);
+                }
+            }
+        }
     }
 
     /**
@@ -145,9 +173,11 @@ public class Dealer implements Runnable {
     }
     public void getStetFromPlayer(int player) {
         int[] set_check = players[player].getSet();
-        if(env.util.testSet(set_check))
+        if(env.util.testSet(set_check)) {
             players[player].point();
-        else
+            winingSet = set_check;
+        } else {
             players[player].penalty();
+        }
     }
 }
