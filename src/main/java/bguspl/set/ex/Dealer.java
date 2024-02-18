@@ -5,6 +5,7 @@ import bguspl.set.UtilImpl;
 
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -119,17 +120,17 @@ public class Dealer implements Runnable {
     /**
      * Check if any cards can be removed from the deck and placed on the table.
      */
-    private void placeCardsOnTable() {
+    private synchronized void placeCardsOnTable() {
         // TODO implement
 
             for (int i = 0 ; i < 12 ; i++) {
                 int rndCard = (int)(Math.random() * deck.size());
-                synchronized (this) {
-                    if (table.slotToCard[i] == null) {
+//                synchronized (this) {
+                    if (table.slotToCard[i] == null && deck.size() > 0) {
                         int card = deck.remove(rndCard);
                         table.placeCard(card, i);
                     }
-                }
+//                }
             }
     }
 
@@ -166,11 +167,11 @@ public class Dealer implements Runnable {
     private void removeAllCardsFromTable() {
         // TODO implement
         for (int i = 0; i < 12; i++) {
-            synchronized (this) {
+//            synchronized (this) {
                 if (table.slotToCard[i] != null) {
                     table.removeCard(i);
                 }
-            }
+//            }
         }
     }
 
@@ -178,7 +179,24 @@ public class Dealer implements Runnable {
      * Check who is/are the winner/s and displays them.
      */
     private void announceWinners() {
-        // TODO implement
+        int max = 0;
+        ConcurrentSkipListSet<Integer> winners = new ConcurrentSkipListSet<>();
+        for(Player player:players) {
+            if(player.score() > max) {
+                max = player.score();
+                winners.clear();
+                winners.add(player.id);
+            } else if(player.score() == max) {
+                winners.add(player.id);
+            }
+        }
+        int[] winnersId = new int[winners.size()];
+        int i = 0;
+        for (Integer id : winners) {
+            winnersId[i] = id;
+            i++;
+        }
+        env.ui.announceWinner(winnersId);
     }
     public void getStetFromPlayer(int player, int[] set_check) {
         int[] cards_check = new int[3];

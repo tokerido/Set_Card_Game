@@ -109,8 +109,10 @@ public class Player implements Runnable {
                     if (myCards.remove(slot)) {
                         table.removeToken(id, slot);
                     } else if (myCards.size() < 3) {
-                        myCards.add(slot);
-                        table.placeToken(id, slot);
+                        if (table.isTokenLegal(slot)) {
+                            myCards.add(slot);
+                            table.placeToken(id, slot);
+                        }
                     }
                     if(myCards.size() == 3) {
                         dealer.getStetFromPlayer(id, getSet());
@@ -137,12 +139,27 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
+            try {
+                Thread.sleep(5000);  
+            } catch (InterruptedException ignored) {
+                // TODO: handle exception
+            }
+            
             while (!terminate) {
                 // TODO implement player key press simulator
+                if (!human) {
+                    for (Integer slot : myCards) {
+                        keyPressed(slot);
+                    }
+                }
+                for (int i = 0 ; i < 3 ; i++) {
+                    int rndCard = (int)(Math.random() * 12);
+                    keyPressed(rndCard);
+                }
 
-                try {
-                    synchronized (this) { wait(); }
-                } catch (InterruptedException ignored) {}
+              //  try {
+              //      synchronized (this) { wait(); }
+              //  } catch (InterruptedException ignored) {}
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -165,7 +182,9 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
         // TODO implement
 //        synchronized (playerThread){
+        if (actions.size() < 3) {
             actions.add(slot);
+        }
 //            playerThread.notifyAll();
 //        }
     }
@@ -183,7 +202,7 @@ public class Player implements Runnable {
                 myCards.clear();
                 int ignored = table.countCards(); // this part is just for demonstration in the unit tests
                 env.ui.setScore(id, ++score); //update score
-                score += 1;
+//                score += 1;
 //                Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
 //                playerThread.notifyAll();
 //            }
@@ -198,14 +217,15 @@ public class Player implements Runnable {
      */
     public void penalty() {
          //TODO implement
-//        try {
-//            synchronized(playerThread){
-//                Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
-//                playerThread.notifyAll();
-//            }
-//        } catch (InterruptedException ignored) {
-//            // TODO: handle exception
-//        }
+
+    //    try {
+    //        synchronized(this){
+    //            Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
+    //            notifyAll();
+    //        }
+    //    } catch (InterruptedException ignored) {
+    //        // TODO: handle exception
+    //    }
         
     }
 
