@@ -41,6 +41,7 @@ public class Dealer implements Runnable {
     private long reshuffleTime = Long.MAX_VALUE;
     private int[] winingSet = new int[3];
     private Object winner;
+    private long resetTime;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -50,6 +51,7 @@ public class Dealer implements Runnable {
         for (int i = 0; i < winingSet.length; i++) {
             winingSet[i] = -1;
         }
+        resetTime = System.currentTimeMillis();
     }
 
     /**
@@ -119,15 +121,16 @@ public class Dealer implements Runnable {
      */
     private void placeCardsOnTable() {
         // TODO implement
-        for (int i = 0 ; i < 12 ; i++) {
-            int rndCard = (int)(Math.random() * deck.size());
-            synchronized (this) {
-                if (table.slotToCard[i] == null) {
-                    int card = deck.remove(rndCard);
-                    table.placeCard(card, i);
+
+            for (int i = 0 ; i < 12 ; i++) {
+                int rndCard = (int)(Math.random() * deck.size());
+                synchronized (this) {
+                    if (table.slotToCard[i] == null) {
+                        int card = deck.remove(rndCard);
+                        table.placeCard(card, i);
+                    }
                 }
             }
-        }
     }
 
     /**
@@ -145,9 +148,10 @@ public class Dealer implements Runnable {
     private void updateTimerDisplay(boolean reset) {
         // TODO implement
         if(reset) {
-            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+            resetTime = System.currentTimeMillis();
+            env.ui.setCountdown(env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()), false);
         } else {
-            env.ui.setCountdown(System.currentTimeMillis(), System.currentTimeMillis() <= env.config.turnTimeoutMillis);
+            env.ui.setCountdown(env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()), env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()) <= env.config.turnTimeoutWarningMillis);
         }
     }
 
@@ -171,11 +175,15 @@ public class Dealer implements Runnable {
     private void announceWinners() {
         // TODO implement
     }
-    public void getStetFromPlayer(int player) {
-        int[] set_check = players[player].getSet();
-        if(env.util.testSet(set_check)) {
+    public void getStetFromPlayer(int player, int[] set_check) {
+        int[] cards_check = new int[3];
+        for(int i = 0; i < 3; i++) {
+            cards_check[i] = table.slotToCard[set_check[i]];
+        }
+        if(env.util.testSet(cards_check)) {
             players[player].point();
             winingSet = set_check;
+            updateTimerDisplay(true);
         } else {
             players[player].penalty();
         }

@@ -113,7 +113,7 @@ public class Player implements Runnable {
                         table.placeToken(id, slot);
                     }
                     if(myCards.size() == 3) {
-                        dealer.getStetFromPlayer(this.id);
+                        dealer.getStetFromPlayer(id, getSet());
                     }
 
 //                    playerThread.notifyAll();
