@@ -30,8 +30,7 @@ public class Table {
      */
     protected final Integer[] cardToSlot; // slot per card (if any)
 
-    protected final Integer[] playerNumOfTokens; // new field
-    protected final ArrayList<ArrayList<Integer>> playersToTokens; // new field
+    protected final Integer[][] playersToTokens; // new field
 
 
     /**
@@ -47,12 +46,11 @@ public class Table {
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
-        this.playerNumOfTokens = new Integer[env.config.players];
-        Arrays.fill(playerNumOfTokens, 0);
-        this.playersToTokens = new ArrayList<>(env.config.players);
-        for (int i = 0; i < env.config.players; i++) {
-            playersToTokens.add(new ArrayList<Integer>(3));  
+        this.playersToTokens = new Integer[env.config.players][12];
+        for(int i = 0; i < env.config.players; i++) {
+            Arrays.fill(playersToTokens[i], 0);
         }
+        
     }
 
     /**
@@ -127,6 +125,9 @@ public class Table {
         synchronized(this){ // need to put synchronized on the dellar placecard too!
             if(slotToCard != null) {
                 int card = slotToCard[slot];
+                for (Integer i = 0; i < env.config.players; i++) {
+                    removeToken(i, slot);
+                }
                 cardToSlot[card] = null;
                 slotToCard[slot] = null;
                 env.ui.removeCard(slot);
@@ -149,10 +150,9 @@ public class Table {
      */
     public synchronized void placeToken(int player, int slot) {
         // TODO implement
-        if(isTokenLegal(slot) && (playerNumOfTokens[player] < 3) )
+        if(isTokenLegal(slot) && (!playerHasSet(player)) )
         {
-            playersToTokens.get(player).add(slot);
-            playerNumOfTokens[player]++;
+            playersToTokens[player][slot] = 1;
             env.ui.placeToken(player,slot);
         }
     }
@@ -167,14 +167,18 @@ public class Table {
         // TODO implement
         if(slotToCard != null)
         {
-            for(int i = 0; i < playersToTokens.get(player).size(); i++) {
-                if(playersToTokens.get(player).get(i) == slot)
-                    playersToTokens.get(player).remove(i);
-            }
-           env.ui.removeToken(player, slot);
-           playerNumOfTokens[player]--;
-           return true;
+            playersToTokens[player][slot] = 0;
+            env.ui.removeToken(player, slot);
+            return true;
         }
         return false;
+    }
+
+    public synchronized boolean playerHasSet(int player) {
+        Integer sum = 0;
+        for (Integer i : playersToTokens[player]) {
+            sum += i;
+        }
+        return sum == 3;
     }
 }

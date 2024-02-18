@@ -147,11 +147,16 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement
+        long currentTimeLeft = env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis());
         if(reset) {
             resetTime = System.currentTimeMillis();
-            env.ui.setCountdown(env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()), false);
+            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+        } else if(currentTimeLeft > 0) {
+            env.ui.setCountdown(currentTimeLeft, currentTimeLeft <= env.config.turnTimeoutWarningMillis);
         } else {
-            env.ui.setCountdown(env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()), env.config.turnTimeoutMillis + (resetTime - System.currentTimeMillis()) <= env.config.turnTimeoutWarningMillis);
+            removeAllCardsFromTable();
+            placeCardsOnTable();
+            updateTimerDisplay(true);
         }
     }
 
