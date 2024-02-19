@@ -216,11 +216,13 @@ public class Player implements Runnable {
 
     public void playerSleep(long time) {
 //        try {
-//            long startingTime = System.currentTimeMillis();
-//            while (time > 0) {
-//                env.ui.setFreeze(id, time);
-//                Thread.sleep(time);
-//                time = time + startingTime - System.currentTimeMillis();
+//            synchronized (this) {
+//                long startingTime = System.currentTimeMillis();
+//                while (time > 0) {
+//                    env.ui.setFreeze(id, time);
+//                    Thread.sleep(300);
+//                    time = time + startingTime - System.currentTimeMillis();
+//                }
 //            }
 //            env.ui.setFreeze(id, 0);
 //            synchronized (actions) {

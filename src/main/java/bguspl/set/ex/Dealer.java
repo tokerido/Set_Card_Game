@@ -116,7 +116,7 @@ public class Dealer implements Runnable {
                 //         players[j].keyPressed(i);
                 //     }
                 // }
-                table.removeCard(winingSet[i]);
+                table.removeCard(table.cardToSlot[winingSet[i]]);
                 winingSet[i] = -1;
             }
         }
@@ -148,12 +148,14 @@ public class Dealer implements Runnable {
         // TODO implement
         synchronized (this) {
             try{
-//                long timeToSleep = System.currentTimeMillis();
-//                while(table.setAnnuncments.isEmpty() || System.currentTimeMillis() - timeToSleep < 900){
-//                    this.wait();
-//                }
+                long timeToSleep = System.currentTimeMillis();
+                if (env.config.turnTimeoutWarningMillis < env.config.turnTimeoutMillis + resetTime - timeToSleep) { //out of warning time
+                    while (table.setAnnuncments.isEmpty() || System.currentTimeMillis() - timeToSleep < 880) {
+                        this.wait(80);
+                    }
+                }
                 table.fairSemaphore.acquire();
-                if(table.setAnnuncments.size() > 1) {
+                if(!table.setAnnuncments.isEmpty()) {
                     int playerId = table.setAnnuncments.poll();
                     int[] cardsToCheck = new int[3];
                     int j = 0;
@@ -163,7 +165,7 @@ public class Dealer implements Runnable {
                             j++;
                         }
                     }
-                    if(env.util.testSet(cardsToCheck)) {
+                    if(env.util.testSet(cardsToCheck) && cardsToCheck[2] != 0) {
                         players[playerId].point();
                         winingSet = cardsToCheck;
                         updateTimerDisplay(true);

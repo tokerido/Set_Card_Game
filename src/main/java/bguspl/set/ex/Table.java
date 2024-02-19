@@ -166,6 +166,9 @@ public class Table {
                 env.ui.placeToken(player, slot);
                 if (playerHasSet(player)) {
                     fairSemaphore.acquire();
+                    while (setAnnuncments.remainingCapacity() == 0){
+                        this.wait(100);
+                    }
                     setAnnuncments.add(player);
                     shouldWait = true;
                     fairSemaphore.release();
