@@ -100,10 +100,10 @@ public class Player implements Runnable {
 
         while (!terminate) {
             // TODO implement main player loop
-//            try {
-//                synchronized(playerThread) {
+            try {
+                synchronized(actions) {
                     while (actions.isEmpty()) {
-//                        playerThread.wait();
+                        actions.wait();
                     }
                     int slot = actions.poll();
                     if (myCards.remove(slot)) {
@@ -119,10 +119,10 @@ public class Player implements Runnable {
                     }
 
 //                    playerThread.notifyAll();
-//            }
-//            } catch (InterruptedException e) {
-//                // TODO: handle exception
-//            }
+            }
+            } catch (InterruptedException e) {
+               // TODO: handle exception
+            }
             
             
             
@@ -181,12 +181,19 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-//        synchronized (playerThread){
-        if (actions.size() < 3) {
-            actions.add(slot);
+        if (!table.switchingCards) {
+         try {
+            synchronized (actions){
+                if (actions.size() < 3) {
+                    actions.add(slot);
+                }
+                actions.notifyAll();
+            }
+         } catch (Exception e) {
+            // TODO: handle exception
+         }    
         }
-//            playerThread.notifyAll();
-//        }
+       
     }
 
     /**
@@ -197,18 +204,10 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-//        try {
-//            synchronized(playerThread){
-                myCards.clear();
-                int ignored = table.countCards(); // this part is just for demonstration in the unit tests
-                env.ui.setScore(id, ++score); //update score
-//                score += 1;
-//                Thread.sleep(env.config.pointFreezeMillis);// wait 1 second
-//                playerThread.notifyAll();
-//            }
-//        } catch (InterruptedException ignored) {
-//            // TODO: handle exception
-//        }
+        myCards.clear();
+        int ignored = table.countCards(); // this part is just for demonstration in the unit tests
+        env.ui.setScore(id, ++score); //update score
+        env.ui.setFreeze(id, env.config.pointFreezeMillis);
         
     }
 
@@ -217,16 +216,25 @@ public class Player implements Runnable {
      */
     public void penalty() {
          //TODO implement
+        playerSleep(env.config.penaltyFreezeMillis);
+    }
 
-    //    try {
-    //        synchronized(this){
-    //            Thread.sleep(env.config.penaltyFreezeMillis); //wait 3 seconds
-    //            notifyAll();
-    //        }
-    //    } catch (InterruptedException ignored) {
-    //        // TODO: handle exception
-    //    }
-        
+    public void playerSleep(long time) {
+        try {
+            long startingTime = System.currentTimeMillis();
+            while (time > 0) {
+                env.ui.setFreeze(id, time);
+                Thread.sleep(time);
+                time = time + startingTime - System.currentTimeMillis();
+            }
+            env.ui.setFreeze(id, 0);
+            synchronized (actions) {
+                actions.clear();
+                actions.notifyAll();
+            }
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
     }
 
     public int score() {

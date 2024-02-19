@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 import bguspl.set.UtilImpl;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -67,6 +68,7 @@ public class Dealer implements Runnable {
         }
         while (!shouldFinish()) {
             placeCardsOnTable();
+            table.switchingCards = false;
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -110,6 +112,11 @@ public class Dealer implements Runnable {
         // TODO implement
         for (int i = 0;  i < winingSet.length; i++) {
             if(winingSet[i] != -1){
+                // for (int j = 0; j < players.length; j++) {
+                //     if (table.playersToTokens[j][winingSet[i]] == 1) {
+                //         players[j].keyPressed(i);
+                //     }
+                // }
                 table.removeCard(winingSet[i]);
                 winingSet[i] = -1;
             }
@@ -122,16 +129,17 @@ public class Dealer implements Runnable {
      */
     private synchronized void placeCardsOnTable() {
         // TODO implement
-
-            for (int i = 0 ; i < 12 ; i++) {
-                int rndCard = (int)(Math.random() * deck.size());
-//                synchronized (this) {
-                    if (table.slotToCard[i] == null && deck.size() > 0) {
-                        int card = deck.remove(rndCard);
-                        table.placeCard(card, i);
-                    }
-//                }
+            Collections.shuffle(deck);
+            synchronized (table) {
+                for (int i = 0 ; i < 12 ; i++) {
+                    int rndCard = (int)(Math.random() * deck.size());
+                        if (table.slotToCard[i] == null && !deck.isEmpty()) {
+                            int card = deck.remove(rndCard);
+                            table.placeCard(card, i);
+                        }
+                }
             }
+            
     }
 
     /**
@@ -166,13 +174,17 @@ public class Dealer implements Runnable {
      */
     private void removeAllCardsFromTable() {
         // TODO implement
-        for (int i = 0; i < 12; i++) {
-//            synchronized (this) {
+        table.switchingCards = true;
+        synchronized (table) {
+            for (int i = 0; i < 12; i++) {
                 if (table.slotToCard[i] != null) {
+                    int card = table.slotToCard[i];
                     table.removeCard(i);
+                    deck.add(card);
                 }
-//            }
+            }
         }
+        Collections.shuffle(deck);
     }
 
     /**

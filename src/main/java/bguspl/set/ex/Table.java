@@ -32,6 +32,8 @@ public class Table {
 
     protected final Integer[][] playersToTokens; // new field
 
+    protected volatile boolean switchingCards; //when placing cards
+
 
     /**
      * Constructor for testing.
@@ -50,7 +52,7 @@ public class Table {
         for(int i = 0; i < env.config.players; i++) {
             Arrays.fill(playersToTokens[i], 0);
         }
-        
+        switchingCards = true;
     }
 
     /**
@@ -96,42 +98,37 @@ public class Table {
      *
      * @post - the card placed is on the table, in the assigned slot.
      */
-    public void placeCard(int card, int slot) {
+    public synchronized void placeCard(int card, int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
         // TODO implement
         //our code start here
-        synchronized(this) { // need to put synchronized on the dellar placecard too!
-            if(slotToCard[slot] == null) {
-                cardToSlot[card] = slot;
-                slotToCard[slot] = card;
-                env.ui.placeCard(card, slot); 
-            }
+        if(slotToCard[slot] == null) {
+            cardToSlot[card] = slot;
+            slotToCard[slot] = card;
+            env.ui.placeCard(card, slot); 
         }
-
     }
 
     /**
      * Removes a card from a grid slot on the table.
      * @param slot - the slot from which to remove the card.
      */
-    public void removeCard(int slot) {
+    public synchronized void removeCard(int slot) {
         try {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
         // TODO implement
         //our code start here
-        synchronized(this){ // need to put synchronized on the dellar placecard too!
-            if(slotToCard != null) {
-                int card = slotToCard[slot];
-                for (Integer i = 0; i < env.config.players; i++) {
-                    removeToken(i, slot);
-                }
-                cardToSlot[card] = null;
-                slotToCard[slot] = null;
-                env.ui.removeCard(slot);
+        if(slotToCard != null) {
+            int card = slotToCard[slot];
+            for (Integer i = 0; i < env.config.players; i++) {
+                removeToken(i, slot);
             }
+            cardToSlot[card] = null;
+            slotToCard[slot] = null;
+            env.ui.removeCard(slot);
         }
     }
     /**
