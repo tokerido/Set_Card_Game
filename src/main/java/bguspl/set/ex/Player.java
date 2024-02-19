@@ -102,7 +102,7 @@ public class Player implements Runnable {
             // TODO implement main player loop
             try {
                 synchronized(actions) {
-                    while (actions.isEmpty()) {
+                    while (actions.isEmpty() || table.shouldWait) {
                         actions.wait();
                     }
                     int slot = actions.poll();
@@ -114,12 +114,7 @@ public class Player implements Runnable {
                             table.placeToken(id, slot);
                         }
                     }
-                    if(myCards.size() == 3) {
-                        dealer.getStetFromPlayer(id, getSet());
-                    }
-
-//                    playerThread.notifyAll();
-            }
+                }
             } catch (InterruptedException e) {
                // TODO: handle exception
             }
@@ -220,21 +215,21 @@ public class Player implements Runnable {
     }
 
     public void playerSleep(long time) {
-        try {
-            long startingTime = System.currentTimeMillis();
-            while (time > 0) {
-                env.ui.setFreeze(id, time);
-                Thread.sleep(time);
-                time = time + startingTime - System.currentTimeMillis();
-            }
-            env.ui.setFreeze(id, 0);
-            synchronized (actions) {
-                actions.clear();
-                actions.notifyAll();
-            }
-        } catch (Exception e) {
-            // TODO: handle exception
-        }
+//        try {
+//            long startingTime = System.currentTimeMillis();
+//            while (time > 0) {
+//                env.ui.setFreeze(id, time);
+//                Thread.sleep(time);
+//                time = time + startingTime - System.currentTimeMillis();
+//            }
+//            env.ui.setFreeze(id, 0);
+//            synchronized (actions) {
+//                actions.clear();
+//                actions.notifyAll();
+//            }
+//        } catch (Exception e) {
+//            // TODO: handle exception
+//        }
     }
 
     public int score() {

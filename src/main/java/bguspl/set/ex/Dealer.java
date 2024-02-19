@@ -3,6 +3,7 @@ package bguspl.set.ex;
 import bguspl.set.Env;
 import bguspl.set.UtilImpl;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -50,9 +51,7 @@ public class Dealer implements Runnable {
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
-        for (int i = 0; i < winingSet.length; i++) {
-            winingSet[i] = -1;
-        }
+        Arrays.fill(winingSet, -1);
         resetTime = System.currentTimeMillis();
     }
 
@@ -147,6 +146,39 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement
+        synchronized (this) {
+            try{
+//                long timeToSleep = System.currentTimeMillis();
+//                while(table.setAnnuncments.isEmpty() || System.currentTimeMillis() - timeToSleep < 900){
+//                    this.wait();
+//                }
+                table.fairSemaphore.acquire();
+                if(table.setAnnuncments.size() > 1) {
+                    int playerId = table.setAnnuncments.poll();
+                    int[] cardsToCheck = new int[3];
+                    int j = 0;
+                    for (int i = 0; i < 12; i++) {
+                        if (table.playersToTokens[playerId][i] == 1) {
+                            cardsToCheck[j] = table.slotToCard[i];
+                            j++;
+                        }
+                    }
+                    if(env.util.testSet(cardsToCheck)) {
+                        players[playerId].point();
+                        winingSet = cardsToCheck;
+                        updateTimerDisplay(true);
+                    } else {
+                        players[playerId].penalty();
+                    }
+                    table.shouldWait = false;
+                }
+                table.fairSemaphore.release();
+                this.notifyAll();
+            } catch (InterruptedException ignored) {
+
+            }
+
+        }
         //modify sync (PS6) 
         //this is done by a player that placed 3 tokens (check for set and give a point or penalty for player) or by timeout (reshuffle deck)
     }
@@ -209,18 +241,5 @@ public class Dealer implements Runnable {
             i++;
         }
         env.ui.announceWinner(winnersId);
-    }
-    public void getStetFromPlayer(int player, int[] set_check) {
-        int[] cards_check = new int[3];
-        for(int i = 0; i < 3; i++) {
-            cards_check[i] = table.slotToCard[set_check[i]];
-        }
-        if(env.util.testSet(cards_check)) {
-            players[player].point();
-            winingSet = set_check;
-            updateTimerDisplay(true);
-        } else {
-            players[player].penalty();
-        }
     }
 }

@@ -2,10 +2,13 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +37,12 @@ public class Table {
 
     protected volatile boolean switchingCards; //when placing cards
 
+    public Semaphore fairSemaphore;
+
+    protected BlockingQueue<Integer> setAnnuncments;
+
+    protected volatile boolean shouldWait;
+
 
     /**
      * Constructor for testing.
@@ -53,6 +62,9 @@ public class Table {
             Arrays.fill(playersToTokens[i], 0);
         }
         switchingCards = true;
+        fairSemaphore = new Semaphore(1,true);
+        setAnnuncments = new ArrayBlockingQueue<>(env.config.players, true);
+        shouldWait = false;
     }
 
     /**
@@ -149,8 +161,17 @@ public class Table {
         // TODO implement
         if(isTokenLegal(slot) && (!playerHasSet(player)) )
         {
-            playersToTokens[player][slot] = 1;
-            env.ui.placeToken(player,slot);
+            try {
+                playersToTokens[player][slot] = 1;
+                env.ui.placeToken(player, slot);
+                if (playerHasSet(player)) {
+                    fairSemaphore.acquire();
+                    setAnnuncments.add(player);
+                    shouldWait = true;
+                    fairSemaphore.release();
+                }
+            } catch(InterruptedException ignored) {}
+
         }
     }
 
