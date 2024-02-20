@@ -149,7 +149,7 @@ public class Player implements Runnable {
             
             while (!terminate) {
                 // TODO implement player key press simulator
-//                synchronized (this){
+
                 if (!table.switchingCards) {
                     if (myCards.size() == 3) {
                         for (Integer slot : myCards) {
@@ -161,11 +161,11 @@ public class Player implements Runnable {
                         int rndCard = (int) (Math.random() * 12);
                         keyPressed(rndCard);
                     }
-//                }
 
                     try {
                         synchronized (this) {
-                            wait();
+                            while (table.shouldWait)
+                                wait();
                         }
                     } catch (InterruptedException ignored) {
                     }
