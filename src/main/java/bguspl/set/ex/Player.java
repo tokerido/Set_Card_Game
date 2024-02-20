@@ -105,12 +105,9 @@ public class Player implements Runnable {
         while (!terminate) {
             // TODO implement main player loop
             try {
-                if (timeToSleep > 0) {
-                    playerSleep();
-                }
-                synchronized(actions) {
+                synchronized(this) {
                     while (actions.isEmpty() || table.shouldWait || table.switchingCards) {
-                        actions.wait();
+                        this.wait(); // should be without time
                     }
                     int slot = actions.poll();
                     if (myCards.remove(slot)) {
@@ -121,7 +118,10 @@ public class Player implements Runnable {
                             table.placeToken(id, slot);
                         }
                     }
-                    actions.notifyAll();
+                    if (timeToSleep > 0) {
+                        playerSleep();
+                    }
+                    this.notifyAll();
                 }
             } catch (InterruptedException e) {
                // TODO: handle exception
@@ -146,22 +146,27 @@ public class Player implements Runnable {
             
             while (!terminate) {
                 // TODO implement player key press simulator
-                synchronized (this){
+//                synchronized (this){
+                if (!table.switchingCards) {
                     if (myCards.size() == 3) {
                         for (Integer slot : myCards) {
                             keyPressed(slot);
                         }
                     }
-            
+
                     if (actions.remainingCapacity() > 0) {
-                        int rndCard = (int)(Math.random() * 12);
+                        int rndCard = (int) (Math.random() * 12);
                         keyPressed(rndCard);
                     }
-                }
+//                }
 
-              //  try {
-              //      synchronized (this) { wait(); }
-              //  } catch (InterruptedException ignored) {}
+                    try {
+                        synchronized (this) {
+                            wait();
+                        }
+                    } catch (InterruptedException ignored) {
+                    }
+                }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
         }, "computer-" + id);
@@ -184,18 +189,17 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
         // TODO implement
         if (!table.switchingCards && !table.shouldWait) {
-//         try {
-//            synchronized (actions){
+         try {
+            synchronized (this){
                 if (actions.remainingCapacity() > 0) {
                     actions.add(slot);
                 }
-//                actions.notifyAll();
-//            }
-        //  } catch (Exception e) {
-        //     // TODO: handle exception
-        //  }    
+                this.notifyAll();
+            }
+          } catch (Exception e) {
+             // TODO: handle exception
+          }
         }
-       
     }
 
     /**
@@ -220,9 +224,9 @@ public class Player implements Runnable {
         timeToSleep = env.config.penaltyFreezeMillis;
     }
 
-    public void playerSleep() {
+    public synchronized void playerSleep() {
        try {
-           synchronized (this) {
+//           synchronized (this) {
                long startingTime = System.currentTimeMillis();
                while (timeToSleep > 0) {
                    env.ui.setFreeze(id, timeToSleep);
@@ -231,10 +235,11 @@ public class Player implements Runnable {
                }
 //                synchronized (actions) {
                     actions.clear();
-                    actions.notifyAll();
+//                    actions.notifyAll();
 //                }
-            env.ui.setFreeze(id, 0);
-           }
+                env.ui.setFreeze(id, 0);
+               this.notifyAll();
+//           }
               
        } catch (Exception e) {
            // TODO: handle exception

@@ -137,6 +137,7 @@ public class Dealer implements Runnable {
                         }
                 }
                 table.switchingCards = false;
+                notifyAll();
             }
             
     }
@@ -175,7 +176,7 @@ public class Dealer implements Runnable {
                     table.shouldWait = false;
                 }
 //                table.fairSemaphore.release();
-//                this.notifyAll();
+                notifyAll();
             } catch (InterruptedException ignored) {
 
             }
