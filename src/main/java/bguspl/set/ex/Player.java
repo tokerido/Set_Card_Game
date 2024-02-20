@@ -5,7 +5,9 @@ import java.util.Hashtable;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingDeque;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicIntegerArray;
@@ -65,7 +67,8 @@ public class Player implements Runnable {
     private int score;
 
     private Set<Integer> myCards; //new field to hold players cards. 
-    private Queue<Integer> actions; //new field to hold the actions we need to do.
+    private BlockingQueue<Integer> actions; //new field to hold the actions we need to do.
+    private volatile long timeToSleep;
 
 
 
@@ -85,7 +88,8 @@ public class Player implements Runnable {
         this.id = id;
         this.human = human;
         myCards = new ConcurrentSkipListSet<>();
-        actions = new ConcurrentLinkedQueue<>();
+        actions = new ArrayBlockingQueue<>(env.config.featureSize);
+        timeToSleep = 0;
     }
     
 
@@ -101,8 +105,11 @@ public class Player implements Runnable {
         while (!terminate) {
             // TODO implement main player loop
             try {
+                if (timeToSleep > 0) {
+                    playerSleep();
+                }
                 synchronized(actions) {
-                    while (actions.isEmpty() || table.shouldWait) {
+                    while (actions.isEmpty() || table.shouldWait || table.switchingCards) {
                         actions.wait();
                     }
                     int slot = actions.poll();
@@ -114,9 +121,11 @@ public class Player implements Runnable {
                             table.placeToken(id, slot);
                         }
                     }
+                    actions.notifyAll();
                 }
             } catch (InterruptedException e) {
                // TODO: handle exception
+               System.out.println("Thred" + this.hashCode() + "has been interrupted");
             }
             
             
@@ -134,22 +143,20 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-            try {
-                Thread.sleep(5000);  
-            } catch (InterruptedException ignored) {
-                // TODO: handle exception
-            }
             
             while (!terminate) {
                 // TODO implement player key press simulator
-                if (!human) {
-                    for (Integer slot : myCards) {
-                        keyPressed(slot);
+                synchronized (this){
+                    if (myCards.size() == 3) {
+                        for (Integer slot : myCards) {
+                            keyPressed(slot);
+                        }
                     }
-                }
-                for (int i = 0 ; i < 3 ; i++) {
-                    int rndCard = (int)(Math.random() * 12);
-                    keyPressed(rndCard);
+            
+                    if (actions.remainingCapacity() > 0) {
+                        int rndCard = (int)(Math.random() * 12);
+                        keyPressed(rndCard);
+                    }
                 }
 
               //  try {
@@ -176,17 +183,17 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-        if (!table.switchingCards) {
-         try {
-            synchronized (actions){
-                if (actions.size() < 3) {
+        if (!table.switchingCards && !table.shouldWait) {
+//         try {
+//            synchronized (actions){
+                if (actions.remainingCapacity() > 0) {
                     actions.add(slot);
                 }
-                actions.notifyAll();
-            }
-         } catch (Exception e) {
-            // TODO: handle exception
-         }    
+//                actions.notifyAll();
+//            }
+        //  } catch (Exception e) {
+        //     // TODO: handle exception
+        //  }    
         }
        
     }
@@ -202,8 +209,7 @@ public class Player implements Runnable {
         myCards.clear();
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score); //update score
-        env.ui.setFreeze(id, env.config.pointFreezeMillis);
-        
+        timeToSleep = env.config.pointFreezeMillis;    
     }
 
     /**
@@ -211,27 +217,29 @@ public class Player implements Runnable {
      */
     public void penalty() {
          //TODO implement
-        playerSleep(env.config.penaltyFreezeMillis);
+        timeToSleep = env.config.penaltyFreezeMillis;
     }
 
-    public void playerSleep(long time) {
-//        try {
-//            synchronized (this) {
-//                long startingTime = System.currentTimeMillis();
-//                while (time > 0) {
-//                    env.ui.setFreeze(id, time);
-//                    Thread.sleep(300);
-//                    time = time + startingTime - System.currentTimeMillis();
+    public void playerSleep() {
+       try {
+           synchronized (this) {
+               long startingTime = System.currentTimeMillis();
+               while (timeToSleep > 0) {
+                   env.ui.setFreeze(id, timeToSleep);
+                   Thread.sleep(300);
+                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
+               }
+//                synchronized (actions) {
+                    actions.clear();
+                    actions.notifyAll();
 //                }
-//            }
-//            env.ui.setFreeze(id, 0);
-//            synchronized (actions) {
-//                actions.clear();
-//                actions.notifyAll();
-//            }
-//        } catch (Exception e) {
-//            // TODO: handle exception
-//        }
+            env.ui.setFreeze(id, 0);
+           }
+              
+       } catch (Exception e) {
+           // TODO: handle exception
+       }
+       timeToSleep = 0;
     }
 
     public int score() {

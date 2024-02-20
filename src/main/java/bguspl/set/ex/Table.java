@@ -165,13 +165,13 @@ public class Table {
                 playersToTokens[player][slot] = 1;
                 env.ui.placeToken(player, slot);
                 if (playerHasSet(player)) {
-                    fairSemaphore.acquire();
+//                    fairSemaphore.acquire();
                     while (setAnnuncments.remainingCapacity() == 0){
                         this.wait(100);
                     }
                     setAnnuncments.add(player);
                     shouldWait = true;
-                    fairSemaphore.release();
+//                    fairSemaphore.release();
                 }
             } catch(InterruptedException ignored) {}
 

@@ -67,7 +67,6 @@ public class Dealer implements Runnable {
         }
         while (!shouldFinish()) {
             placeCardsOnTable();
-            table.switchingCards = false;
             timerLoop();
             updateTimerDisplay(false);
             removeAllCardsFromTable();
@@ -137,6 +136,7 @@ public class Dealer implements Runnable {
                             table.placeCard(card, i);
                         }
                 }
+                table.switchingCards = false;
             }
             
     }
@@ -148,13 +148,13 @@ public class Dealer implements Runnable {
         // TODO implement
         synchronized (this) {
             try{
-                long timeToSleep = System.currentTimeMillis();
-                if (env.config.turnTimeoutWarningMillis < env.config.turnTimeoutMillis + resetTime - timeToSleep) { //out of warning time
-                    while (table.setAnnuncments.isEmpty() || System.currentTimeMillis() - timeToSleep < 880) {
-                        this.wait(80);
+                long sleepTime = System.currentTimeMillis();
+                if (env.config.turnTimeoutWarningMillis < env.config.turnTimeoutMillis + resetTime - sleepTime) { //out of warning time
+                    while (table.setAnnuncments.isEmpty() && System.currentTimeMillis() - sleepTime < 900) {
+                        this.wait(100);
                     }
                 }
-                table.fairSemaphore.acquire();
+//                table.fairSemaphore.acquire();
                 if(!table.setAnnuncments.isEmpty()) {
                     int playerId = table.setAnnuncments.poll();
                     int[] cardsToCheck = new int[3];
@@ -165,7 +165,7 @@ public class Dealer implements Runnable {
                             j++;
                         }
                     }
-                    if(env.util.testSet(cardsToCheck) && cardsToCheck[2] != 0) {
+                    if(cardsToCheck[2] != 0 && env.util.testSet(cardsToCheck)) {
                         players[playerId].point();
                         winingSet = cardsToCheck;
                         updateTimerDisplay(true);
@@ -174,8 +174,8 @@ public class Dealer implements Runnable {
                     }
                     table.shouldWait = false;
                 }
-                table.fairSemaphore.release();
-                this.notifyAll();
+//                table.fairSemaphore.release();
+//                this.notifyAll();
             } catch (InterruptedException ignored) {
 
             }
