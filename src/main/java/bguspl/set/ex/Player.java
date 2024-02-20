@@ -106,7 +106,12 @@ public class Player implements Runnable {
             // TODO implement main player loop
             try {
                 synchronized(this) {
-                    while (actions.isEmpty() || table.shouldWait || table.switchingCards) {
+                    while (table.shouldWait) {
+                        if (timeToSleep > 0) {
+                            playerSleep();
+                        }
+                    }
+                    while (actions.isEmpty() || table.switchingCards) {
                         this.wait(); // should be without time
                     }
                     int slot = actions.poll();
@@ -118,9 +123,7 @@ public class Player implements Runnable {
                             table.placeToken(id, slot);
                         }
                     }
-                    if (timeToSleep > 0) {
-                        playerSleep();
-                    }
+
                     this.notifyAll();
                 }
             } catch (InterruptedException e) {
