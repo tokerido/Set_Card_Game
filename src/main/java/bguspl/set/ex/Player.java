@@ -1,18 +1,9 @@
 package bguspl.set.ex;
 
-import java.util.HashSet;
-import java.util.Hashtable;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-
-import javax.swing.text.html.HTMLDocument.Iterator;
 
 import bguspl.set.Env;
 
@@ -181,7 +172,14 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement
+        if (!human){
+            aiThread.interrupt();
+        }
         terminate = true;
+    }
+
+    protected Thread getThread() {
+        return playerThread;
     }
 
     /**

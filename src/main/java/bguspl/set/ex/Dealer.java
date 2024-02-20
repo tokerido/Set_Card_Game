@@ -1,14 +1,11 @@
 package bguspl.set.ex;
 
 import bguspl.set.Env;
-import bguspl.set.UtilImpl;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Random;
 import java.util.concurrent.ConcurrentSkipListSet;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -92,6 +89,15 @@ public class Dealer implements Runnable {
      */
     public void terminate() {
         // TODO implement
+        try {
+            for (Player player : players) {
+                player.terminate();
+                player.getThread().interrupt();
+                player.getThread().join();
+            }
+        } catch (InterruptedException ignored){}
+        terminate = true;
+        Thread.currentThread().interrupt();
     }
 
     /**
@@ -244,5 +250,6 @@ public class Dealer implements Runnable {
             i++;
         }
         env.ui.announceWinner(winnersId);
+        terminate();
     }
 }
