@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 
@@ -39,7 +38,7 @@ public class Table {
 
     public Semaphore fairSemaphore;
 
-    protected BlockingQueue<Integer> setAnnuncments;
+    protected BlockingQueue<Integer> setAnnouncements;
 
     protected volatile boolean[] shouldWait;
 
@@ -63,7 +62,7 @@ public class Table {
         }
         switchingCards = true;
         fairSemaphore = new Semaphore(1,true);
-        setAnnuncments = new ArrayBlockingQueue<>(env.config.players, true);
+        setAnnouncements = new ArrayBlockingQueue<>(env.config.players, true);
         shouldWait = new boolean[env.config.players];
         Arrays.fill(shouldWait, false);
     }
@@ -136,7 +135,7 @@ public class Table {
         //our code start here
         if(slotToCard != null) {
             int card = slotToCard[slot];
-            for (Integer i = 0; i < env.config.players; i++) {
+            for (int i = 0; i < env.config.players; i++) {
                 removeToken(i, slot);
             }
             cardToSlot[card] = null;
@@ -149,9 +148,9 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
      public boolean isTokenLegal(int slot) {
-        if(slotToCard[slot] == null)
-            return false;
-        return true;
+//        if(slotToCard[slot] == null)
+//            return false;
+        return slotToCard[slot] != null;
      }
     /**
      * Places a player token on a grid slot.
@@ -167,10 +166,10 @@ public class Table {
                 env.ui.placeToken(player, slot);
                 if (playerHasSet(player)) {
 //                    fairSemaphore.acquire();
-                    while (setAnnuncments.remainingCapacity() == 0){
-                        this.wait(100);
-                    }
-                    setAnnuncments.add(player);
+//                    while (setAnnouncements.remainingCapacity() == 0){
+//                        this.wait(100);
+//                    }
+                    setAnnouncements.put(player);
                     shouldWait[player] = true;
 //                    fairSemaphore.release();
                 }
@@ -187,7 +186,7 @@ public class Table {
      */
     public synchronized boolean removeToken(int player, int slot) {
         // TODO implement
-        if(slotToCard != null && playersToTokens[player][slot] == 1)
+        if(slotToCard[slot] != null && playersToTokens[player][slot] == 1)
         {
             playersToTokens[player][slot] = 0;
             env.ui.removeToken(player, slot);

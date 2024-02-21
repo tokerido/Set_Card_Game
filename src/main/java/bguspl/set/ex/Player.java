@@ -1,9 +1,7 @@
 package bguspl.set.ex;
 
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentSkipListSet;
 
 import bguspl.set.Env;
 
@@ -96,20 +94,39 @@ public class Player implements Runnable {
         while (!terminate) {
             // TODO implement main player loop
             try {
-                synchronized(this) {
+//                synchronized(this) {
+                if (!table.switchingCards) {
                     while (table.shouldWait[id]) {
                         if (timeToSleep > 0) {
                             playerSleep();
                         }
                     }
-                    while (actions.isEmpty() || table.switchingCards) {
-                        this.wait(); // should be without time
+                    int slot;
+                    synchronized (dealer.actionLocker){
+                        while (actions.isEmpty()){
+                            dealer.actionLocker.wait();
+                        }
+                        slot = actions.remove();
+                        dealer.actionLocker.notifyAll();
                     }
-                    int slot = actions.poll();
-                    if (!table.removeToken(id,slot)){
+
+//                    synchronized (actions) {
+//                        while (table.switchingCards) {
+//                            actions.wait(); // should be without time
+//                        }
+//                        slot = actions.take();
+//                        actions.notifyAll();
+//                    }
+                    if (!table.removeToken(id, slot)) {
                         if (table.isTokenLegal(slot) && !table.playerHasSet(id)) {
                             table.placeToken(id, slot);
                         }
+                        if (table.playerHasSet(id)){
+                            synchronized (dealer.setLocker){
+                                dealer.setLocker.notifyAll();
+                            }
+                        }
+
                     }
 //                    if (myCards.remove(slot)) {
 //                        table.removeToken(id, slot);
@@ -120,7 +137,15 @@ public class Player implements Runnable {
 //                        }
 //                    }
 
-                    this.notifyAll();
+//                    this.notifyAll();
+//                }
+                } else {
+                    synchronized (dealer.actionLocker){
+                        while(table.switchingCards) {
+                            dealer.actionLocker.wait();
+                        }
+                        dealer.actionLocker.notifyAll();
+                    }
                 }
             } catch (InterruptedException e) {
                // TODO: handle exception
@@ -156,17 +181,17 @@ public class Player implements Runnable {
                     }
 
                     if (actions.remainingCapacity() > 0) {
-                        int rndCard = (int) (Math.random() * 12);
+                        int rndCard = (int) (Math.random() * env.config.tableSize);
                         keyPressed(rndCard);
                     }
 
-                    try {
-                        synchronized (this) {
-                            while (table.shouldWait[id])
-                                wait();
-                        }
-                    } catch (InterruptedException ignored) {
-                    }
+//                    try {
+//                        synchronized (this) {
+//                            while (table.shouldWait[id])
+//                                wait();
+//                        }
+//                    } catch (InterruptedException ignored) {
+//                    }
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -198,12 +223,7 @@ public class Player implements Runnable {
         // TODO implement
         if (!table.switchingCards && !table.shouldWait[id]) {
          try {
-            synchronized (this){
-                if (actions.remainingCapacity() > 0) {
-                    actions.add(slot);
-                }
-                this.notifyAll();
-            }
+             actions.put(slot);
           } catch (Exception e) {
              // TODO: handle exception
           }
@@ -233,26 +253,26 @@ public class Player implements Runnable {
     }
 
     public synchronized void playerSleep() {
-//       try {
-////           synchronized (this) {
-//               long startingTime = System.currentTimeMillis();
-//               while (timeToSleep > 0) {
-//                   env.ui.setFreeze(id, timeToSleep);
-//                   Thread.sleep(300);
-//                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
-//               }
-////                synchronized (actions) {
-//                    actions.clear();
-////                    actions.notifyAll();
-////                }
-//                env.ui.setFreeze(id, 0);
+       try {
+//           synchronized (this) {
+               long startingTime = System.currentTimeMillis();
+               while (timeToSleep > 0) {
+                   env.ui.setFreeze(id, timeToSleep);
+                   Thread.sleep(300);
+                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
+               }
+//                synchronized (actions) {
+                    actions.clear();
+//                    actions.notifyAll();
+//                }
+                env.ui.setFreeze(id, 0);
 //               this.notifyAll();
-////           }
-//
-//       } catch (Exception e) {
-//           // TODO: handle exception
-//       }
-//       timeToSleep = 0;
+//           }
+
+       } catch (Exception e) {
+           // TODO: handle exception
+       }
+       timeToSleep = 0;
     }
 
     public int score() {
