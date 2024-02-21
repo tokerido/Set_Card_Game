@@ -57,7 +57,7 @@ public class Player implements Runnable {
      */
     private int score;
 
-    private Set<Integer> myCards; //new field to hold players cards. 
+    //private Set<Integer> myCards; //new field to hold players cards.
     private BlockingQueue<Integer> actions; //new field to hold the actions we need to do.
     private volatile long timeToSleep;
 
@@ -78,7 +78,7 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
-        myCards = new ConcurrentSkipListSet<>();
+    //    myCards = new ConcurrentSkipListSet<>();
         actions = new ArrayBlockingQueue<>(env.config.featureSize);
         timeToSleep = 0;
     }
@@ -97,7 +97,7 @@ public class Player implements Runnable {
             // TODO implement main player loop
             try {
                 synchronized(this) {
-                    while (table.shouldWait) {
+                    while (table.shouldWait[id]) {
                         if (timeToSleep > 0) {
                             playerSleep();
                         }
@@ -106,14 +106,19 @@ public class Player implements Runnable {
                         this.wait(); // should be without time
                     }
                     int slot = actions.poll();
-                    if (myCards.remove(slot)) {
-                        table.removeToken(id, slot);
-                    } else if (myCards.size() < 3) {
-                        if (table.isTokenLegal(slot)) {
-                            myCards.add(slot);
+                    if (!table.removeToken(id,slot)){
+                        if (table.isTokenLegal(slot) && !table.playerHasSet(id)) {
                             table.placeToken(id, slot);
                         }
                     }
+//                    if (myCards.remove(slot)) {
+//                        table.removeToken(id, slot);
+//                    } else if (myCards.size() < 3) {
+//                        if (table.isTokenLegal(slot)) {
+//                            myCards.add(slot);
+//                            table.placeToken(id, slot);
+//                        }
+//                    }
 
                     this.notifyAll();
                 }
@@ -142,9 +147,11 @@ public class Player implements Runnable {
                 // TODO implement player key press simulator
 
                 if (!table.switchingCards) {
-                    if (myCards.size() == 3) {
-                        for (Integer slot : myCards) {
-                            keyPressed(slot);
+                    if (table.playerHasSet(id)) {
+                        for (int i = 0; i < table.playersToTokens[id].length; i++) {
+                            if (table.playersToTokens[id][i] == 1) {
+                                keyPressed(i);
+                            }
                         }
                     }
 
@@ -155,7 +162,7 @@ public class Player implements Runnable {
 
                     try {
                         synchronized (this) {
-                            while (table.shouldWait)
+                            while (table.shouldWait[id])
                                 wait();
                         }
                     } catch (InterruptedException ignored) {
@@ -189,7 +196,7 @@ public class Player implements Runnable {
      */
     public void keyPressed(int slot) {
         // TODO implement
-        if (!table.switchingCards && !table.shouldWait) {
+        if (!table.switchingCards && !table.shouldWait[id]) {
          try {
             synchronized (this){
                 if (actions.remainingCapacity() > 0) {
@@ -211,7 +218,7 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-        myCards.clear();
+//        myCards.clear();
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score); //update score
         timeToSleep = env.config.pointFreezeMillis;    
@@ -226,45 +233,31 @@ public class Player implements Runnable {
     }
 
     public synchronized void playerSleep() {
-       try {
-//           synchronized (this) {
-               long startingTime = System.currentTimeMillis();
-               while (timeToSleep > 0) {
-                   env.ui.setFreeze(id, timeToSleep);
-                   Thread.sleep(300);
-                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
-               }
-//                synchronized (actions) {
-                    actions.clear();
-//                    actions.notifyAll();
-//                }
-                env.ui.setFreeze(id, 0);
-               this.notifyAll();
-//           }
-              
-       } catch (Exception e) {
-           // TODO: handle exception
-       }
-       timeToSleep = 0;
+//       try {
+////           synchronized (this) {
+//               long startingTime = System.currentTimeMillis();
+//               while (timeToSleep > 0) {
+//                   env.ui.setFreeze(id, timeToSleep);
+//                   Thread.sleep(300);
+//                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
+//               }
+////                synchronized (actions) {
+//                    actions.clear();
+////                    actions.notifyAll();
+////                }
+//                env.ui.setFreeze(id, 0);
+//               this.notifyAll();
+////           }
+//
+//       } catch (Exception e) {
+//           // TODO: handle exception
+//       }
+//       timeToSleep = 0;
     }
 
     public int score() {
         return score;
     }
 
-    public int[] getSet() {
-//        try{
-//           synchronized (playerThread) {
-               int[] slots = new int[3];
-               int i = 0;
-               for (int slot : myCards) {
-                   slots[i] = slot;
-                   i++;
-               }
-//               playerThread.notifyAll();
-               return slots;
-//           }
-//        } catch (Exception ignored) {} //check this
-//        return null;
-    }
+
 }

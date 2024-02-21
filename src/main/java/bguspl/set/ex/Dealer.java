@@ -39,7 +39,7 @@ public class Dealer implements Runnable {
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
     private long reshuffleTime = Long.MAX_VALUE;
-    private int[] winingSet = new int[3];
+    private int[] winingSet;
     private Object winner;
     private long resetTime;
 
@@ -48,6 +48,7 @@ public class Dealer implements Runnable {
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
+        winingSet = new int[env.config.featureSize];
         Arrays.fill(winingSet, -1);
         resetTime = System.currentTimeMillis();
     }
@@ -89,6 +90,7 @@ public class Dealer implements Runnable {
      */
     public void terminate() {
         // TODO implement
+        terminate = true;
         try {
             for (Player player : players) {
                 player.terminate();
@@ -96,7 +98,6 @@ public class Dealer implements Runnable {
                 player.getThread().join();
             }
         } catch (InterruptedException ignored){}
-        terminate = true;
         Thread.currentThread().interrupt();
     }
 
@@ -154,40 +155,42 @@ public class Dealer implements Runnable {
     private void sleepUntilWokenOrTimeout() {
         // TODO implement
         synchronized (this) {
-            try{
+            try {
                 long sleepTime = System.currentTimeMillis();
                 if (env.config.turnTimeoutWarningMillis < env.config.turnTimeoutMillis + resetTime - sleepTime) { //out of warning time
                     while (table.setAnnuncments.isEmpty() && System.currentTimeMillis() - sleepTime < 900) {
                         this.wait(100);
                     }
                 }
-//                table.fairSemaphore.acquire();
-                if(!table.setAnnuncments.isEmpty()) {
-                    int playerId = table.setAnnuncments.poll();
-                    int[] cardsToCheck = new int[3];
-                    int j = 0;
-                    for (int i = 0; i < 12; i++) {
-                        if (table.playersToTokens[playerId][i] == 1) {
-                            cardsToCheck[j] = table.slotToCard[i];
-                            j++;
-                        }
-                    }
-                    if(cardsToCheck[2] != 0 && env.util.testSet(cardsToCheck)) {
-                        players[playerId].point();
-                        winingSet = cardsToCheck;
-                        updateTimerDisplay(true);
-                    } else {
-                        players[playerId].penalty();
-                    }
-                    table.shouldWait = false;
-                }
-//                table.fairSemaphore.release();
-                notifyAll();
-            } catch (InterruptedException ignored) {
 
-            }
-
+            } catch (InterruptedException ignored) {}
+            notifyAll();
         }
+//                table.fairSemaphore.acquire();
+        synchronized (table.setAnnuncments) {
+            if (!table.setAnnuncments.isEmpty()) {
+                int playerId = table.setAnnuncments.poll();
+                int[] cardsToCheck = new int[3];
+                int j = 0;
+                for (int i = 0; i < 12; i++) {
+                    if (table.playersToTokens[playerId][i] == 1) {
+                        cardsToCheck[j] = table.slotToCard[i];
+                        j++;
+                    }
+                }
+                if (cardsToCheck[2] != 0 && env.util.testSet(cardsToCheck)) {
+                    players[playerId].point();
+                    winingSet = cardsToCheck;
+                    updateTimerDisplay(true);
+                } else {
+                    players[playerId].penalty();
+                }
+                table.shouldWait[playerId] = false;
+            }
+//                table.fairSemaphore.release();
+        }
+
+
         //modify sync (PS6) 
         //this is done by a player that placed 3 tokens (check for set and give a point or penalty for player) or by timeout (reshuffle deck)
     }

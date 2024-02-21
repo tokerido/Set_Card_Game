@@ -41,7 +41,7 @@ public class Table {
 
     protected BlockingQueue<Integer> setAnnuncments;
 
-    protected volatile boolean shouldWait;
+    protected volatile boolean[] shouldWait;
 
 
     /**
@@ -64,7 +64,8 @@ public class Table {
         switchingCards = true;
         fairSemaphore = new Semaphore(1,true);
         setAnnuncments = new ArrayBlockingQueue<>(env.config.players, true);
-        shouldWait = false;
+        shouldWait = new boolean[env.config.players];
+        Arrays.fill(shouldWait, false);
     }
 
     /**
@@ -170,7 +171,7 @@ public class Table {
                         this.wait(100);
                     }
                     setAnnuncments.add(player);
-                    shouldWait = true;
+                    shouldWait[player] = true;
 //                    fairSemaphore.release();
                 }
             } catch(InterruptedException ignored) {}
@@ -186,7 +187,7 @@ public class Table {
      */
     public synchronized boolean removeToken(int player, int slot) {
         // TODO implement
-        if(slotToCard != null)
+        if(slotToCard != null && playersToTokens[player][slot] == 1)
         {
             playersToTokens[player][slot] = 0;
             env.ui.removeToken(player, slot);
@@ -200,6 +201,6 @@ public class Table {
         for (Integer i : playersToTokens[player]) {
             sum += i;
         }
-        return sum == 3;
+        return sum == env.config.featureSize;
     }
 }
