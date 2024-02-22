@@ -49,14 +49,14 @@ public class Table {
      * @param env        - the game environment objects.
      * @param slotToCard - mapping between a slot and the card placed in it (null if none).
      * @param cardToSlot - mapping between a card and the slot it is in (null if none).
-     * @param playersToTokens - mapping between a player and the slot he picked (null if none).
+     * //@param playersToTokens - mapping between a player and the slot he picked (null if none).
      */
     public Table(Env env, Integer[] slotToCard, Integer[] cardToSlot) {
 
         this.env = env;
         this.slotToCard = slotToCard;
         this.cardToSlot = cardToSlot;
-        this.playersToTokens = new Integer[env.config.players][12];
+        this.playersToTokens = new Integer[env.config.players][env.config.tableSize];
         for(int i = 0; i < env.config.players; i++) {
             Arrays.fill(playersToTokens[i], 0);
         }

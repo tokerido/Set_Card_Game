@@ -95,20 +95,25 @@ public class Player implements Runnable {
             // TODO implement main player loop
             try {
 //                synchronized(this) {
+
                 if (!table.switchingCards) {
-                    while (table.shouldWait[id]) {
+                    synchronized (dealer.playerShouldWait[id]) {
+                        while (table.shouldWait[id]) {
+                            dealer.playerShouldWait[id].wait();
+                        }
                         if (timeToSleep > 0) {
                             playerSleep();
                         }
+                        //notifyall??
                     }
-                    int slot;
-                    synchronized (dealer.actionLocker){
-                        while (actions.isEmpty()){
-                            dealer.actionLocker.wait();
-                        }
-                        slot = actions.remove();
-                        dealer.actionLocker.notifyAll();
-                    }
+                    int slot = actions.take();
+//                    synchronized (dealer.actionLocker){
+//                        while (actions.isEmpty()){
+//                            dealer.actionLocker.wait();
+//                        }
+//                        slot = actions.remove();
+//                        dealer.actionLocker.notifyAll();
+//                    }
 
 //                    synchronized (actions) {
 //                        while (table.switchingCards) {
@@ -252,7 +257,7 @@ public class Player implements Runnable {
         timeToSleep = env.config.penaltyFreezeMillis;
     }
 
-    public synchronized void playerSleep() {
+    public void playerSleep() {//was syncronized
        try {
 //           synchronized (this) {
                long startingTime = System.currentTimeMillis();
