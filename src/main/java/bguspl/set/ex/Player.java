@@ -2,6 +2,7 @@ package bguspl.set.ex;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 import bguspl.set.Env;
 
@@ -57,8 +58,8 @@ public class Player implements Runnable {
 
     //private Set<Integer> myCards; //new field to hold players cards.
     private BlockingQueue<Integer> actions; //new field to hold the actions we need to do.
-    private volatile long timeToSleep;
-
+    private volatile AtomicLong timeToSleep;
+    private final AtomicLong ZERO = new AtomicLong(0);
 
 
     /**
@@ -76,11 +77,10 @@ public class Player implements Runnable {
         this.table = table;
         this.id = id;
         this.human = human;
-    //    myCards = new ConcurrentSkipListSet<>();
         actions = new ArrayBlockingQueue<>(env.config.featureSize);
-        timeToSleep = 0;
+        timeToSleep = new AtomicLong(0);
     }
-    
+
 
     /**
      * The main player thread of each player starts here (main loop for the player thread).
@@ -94,73 +94,48 @@ public class Player implements Runnable {
         while (!terminate) {
             // TODO implement main player loop
             try {
-//                synchronized(this) {
-
                 if (!table.switchingCards) {
                     synchronized (dealer.playerShouldWait[id]) {
                         while (table.shouldWait[id]) {
                             dealer.playerShouldWait[id].wait();
                         }
-                        if (timeToSleep > 0) {
-                            playerSleep();
-                        }
-                        //notifyall??
                     }
-                    int slot = actions.take();
-//                    synchronized (dealer.actionLocker){
-//                        while (actions.isEmpty()){
-//                            dealer.actionLocker.wait();
-//                        }
-//                        slot = actions.remove();
-//                        dealer.actionLocker.notifyAll();
-//                    }
+                    if (timeToSleep.get() > ZERO.get()) {
+                        playerSleep();
+                    }
 
-//                    synchronized (actions) {
-//                        while (table.switchingCards) {
-//                            actions.wait(); // should be without time
-//                        }
-//                        slot = actions.take();
-//                        actions.notifyAll();
-//                    }
+                    int slot = actions.take();
+
                     if (!table.removeToken(id, slot)) {
                         if (table.isTokenLegal(slot) && !table.playerHasSet(id)) {
                             table.placeToken(id, slot);
                         }
-                        if (table.playerHasSet(id)){
-                            synchronized (dealer.setLocker){
+                        if (table.playerHasSet(id)) {
+                            synchronized (dealer.setLocker) {
                                 dealer.setLocker.notifyAll();
                             }
                         }
 
                     }
-//                    if (myCards.remove(slot)) {
-//                        table.removeToken(id, slot);
-//                    } else if (myCards.size() < 3) {
-//                        if (table.isTokenLegal(slot)) {
-//                            myCards.add(slot);
-//                            table.placeToken(id, slot);
-//                        }
-//                    }
-
-//                    this.notifyAll();
-//                }
                 } else {
-                    synchronized (dealer.actionLocker){
-                        while(table.switchingCards) {
+                    synchronized (dealer.actionLocker) {
+                        while (table.switchingCards) {
                             dealer.actionLocker.wait();
                         }
                         dealer.actionLocker.notifyAll();
                     }
                 }
             } catch (InterruptedException e) {
-               // TODO: handle exception
-               System.out.println("Thred" + this.hashCode() + "has been interrupted");
+                // TODO: handle exception
+                System.out.println("Thred" + this.hashCode() + "has been interrupted");
             }
-            
-            
-            
-         }
-        if (!human) try { aiThread.join(); } catch (InterruptedException ignored) {}
+
+
+        }
+        if (!human) try {
+            aiThread.join();
+        } catch (InterruptedException ignored) {
+        }
         env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
     }
 
@@ -172,7 +147,7 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-            
+
             while (!terminate) {
                 // TODO implement player key press simulator
 
@@ -190,13 +165,6 @@ public class Player implements Runnable {
                         keyPressed(rndCard);
                     }
 
-//                    try {
-//                        synchronized (this) {
-//                            while (table.shouldWait[id])
-//                                wait();
-//                        }
-//                    } catch (InterruptedException ignored) {
-//                    }
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");
@@ -209,7 +177,7 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement
-        if (!human){
+        if (!human) {
             aiThread.interrupt();
         }
         terminate = true;
@@ -227,11 +195,11 @@ public class Player implements Runnable {
     public void keyPressed(int slot) {
         // TODO implement
         if (!table.switchingCards && !table.shouldWait[id]) {
-         try {
-             actions.put(slot);
-          } catch (Exception e) {
-             // TODO: handle exception
-          }
+            try {
+                actions.put(slot);
+            } catch (Exception e) {
+                // TODO: handle exception
+            }
         }
     }
 
@@ -243,46 +211,36 @@ public class Player implements Runnable {
      */
     public void point() {
         // TODO implement
-//        myCards.clear();
         int ignored = table.countCards(); // this part is just for demonstration in the unit tests
         env.ui.setScore(id, ++score); //update score
-        timeToSleep = env.config.pointFreezeMillis;    
+        timeToSleep.compareAndSet(0, env.config.pointFreezeMillis);
     }
 
     /**
      * Penalize a player and perform other related actions.
      */
     public void penalty() {
-         //TODO implement
-        timeToSleep = env.config.penaltyFreezeMillis;
+        //TODO implement
+        timeToSleep.compareAndSet(0, env.config.penaltyFreezeMillis);
     }
 
-    public void playerSleep() {//was syncronized
-       try {
-//           synchronized (this) {
-               long startingTime = System.currentTimeMillis();
-               while (timeToSleep > 0) {
-                   env.ui.setFreeze(id, timeToSleep);
-                   Thread.sleep(300);
-                   timeToSleep = timeToSleep + startingTime - System.currentTimeMillis();
-               }
-//                synchronized (actions) {
-                    actions.clear();
-//                    actions.notifyAll();
-//                }
-                env.ui.setFreeze(id, 0);
-//               this.notifyAll();
-//           }
-
-       } catch (Exception e) {
-           // TODO: handle exception
-       }
-       timeToSleep = 0;
+    public void playerSleep() {
+        try {
+            long startingTime = System.currentTimeMillis();
+            while (timeToSleep.get() > ZERO.get()) {
+                env.ui.setFreeze(id, timeToSleep.get());
+                Thread.sleep(300);
+                timeToSleep.compareAndSet(timeToSleep.get(), timeToSleep.get() + startingTime - System.currentTimeMillis());
+            }
+            actions.clear();
+            env.ui.setFreeze(id, 0);
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
+        timeToSleep.set(ZERO.get());
     }
 
     public int score() {
         return score;
     }
-
-
 }
