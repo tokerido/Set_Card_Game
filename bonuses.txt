@@ -12,13 +12,21 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-We are not entitled to this bonus.
+instead of using magic numbers we used the env configuration's settings so as game mangers or testers we could change the settings
+without needing to change the game code. as example in table's constructor instead of using "12" as table's size we used env.config.tableSize
+which can be changed in config.properties file. we used it in player and dealer constructors and in each function that requires the number of
+players in the game, the number of set features, the table size and number of slots.
+we checked each of the changes with changing it on config.properties and running the game while checking the log, viewing during the game if
+it works or not and with test's like 4 ai players running without penalty.
 
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-We are not entitled to this bonus.
+In the terminate function in the dealer class we make sure that all the players are terminated by calling the terminated function
+in player class and interrupt their thread by getting it from the player. by the reverse order we createdthem (filo) by revers for loop
+for the players and then terminating the dealer thread. We used 'join' to make sure we wait to the thread's to be terminated.
+we checked it when the game was stopped after announce the winner or "keyx" pressed and by following the thread's interrupting.
 
 --------------------
 
