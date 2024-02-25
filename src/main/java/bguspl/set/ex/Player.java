@@ -5,6 +5,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import bguspl.set.Env;
+import bguspl.set.Main;
 
 /**
  * This class manages the players' threads and data
@@ -127,7 +128,7 @@ public class Player implements Runnable {
                 }
             } catch (InterruptedException e) {
                 // TODO: handle exception
-                System.out.println("Thred" + this.hashCode() + "has been interrupted");
+                System.out.println("Thread " + this.hashCode() + " has been interrupted");
             }
 
 
@@ -177,10 +178,10 @@ public class Player implements Runnable {
      */
     public void terminate() {
         // TODO implement
+        terminate = true;
         if (!human) {
             aiThread.interrupt();
         }
-        terminate = true;
     }
 
     protected Thread getThread() {
@@ -229,7 +230,7 @@ public class Player implements Runnable {
             long startingTime = System.currentTimeMillis();
             while (timeToSleep.get() > ZERO.get()) {
                 env.ui.setFreeze(id, timeToSleep.get());
-                Thread.sleep(300);
+                Thread.sleep(Math.min(timeToSleep.get(), 500));
                 timeToSleep.compareAndSet(timeToSleep.get(), timeToSleep.get() + startingTime - System.currentTimeMillis());
             }
             actions.clear();

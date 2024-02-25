@@ -148,8 +148,6 @@ public class Table {
      * @param slot   - the slot on which to place the token.
      */
      public boolean isTokenLegal(int slot) {
-//        if(slotToCard[slot] == null)
-//            return false;
         return slotToCard[slot] != null;
      }
     /**
@@ -165,13 +163,8 @@ public class Table {
                 playersToTokens[player][slot] = 1;
                 env.ui.placeToken(player, slot);
                 if (playerHasSet(player)) {
-//                    fairSemaphore.acquire();
-//                    while (setAnnouncements.remainingCapacity() == 0){
-//                        this.wait(100);
-//                    }
                     setAnnouncements.put(player);
                     shouldWait[player] = true;
-//                    fairSemaphore.release();
                 }
             } catch(InterruptedException ignored) {}
 

@@ -38,7 +38,9 @@ public class Dealer implements Runnable {
     /**
      * The time when the dealer needs to reshuffle the deck due to turn timeout.
      */
-    private long reshuffleTime = Long.MAX_VALUE;
+    private long reshuffleTime;
+    private long currentTimeLeft;
+    private long timeToWait;
     private int[] winningSet;
     public final Object actionLocker;
     public final Object setLocker;
@@ -51,11 +53,13 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         winningSet = new int[env.config.featureSize];
         Arrays.fill(winningSet, -1);
-        reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
+        //reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
         actionLocker = new Object();
         setLocker = new Object();
         playerShouldWait = new Object[env.config.players];
         Arrays.fill(playerShouldWait, new Object());
+        reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
+        currentTimeLeft = env.config.turnTimeoutMillis;
     }
 
     /**
@@ -97,14 +101,13 @@ public class Dealer implements Runnable {
         // TODO implement
         terminate = true;
         try {
-            for (Player player : players) {
-                player.terminate();
-                player.getThread().interrupt();
-                player.getThread().join();
+            for (int i = players.length - 1; i >= 0; i--) {
+                players[i].terminate();
+                players[i].getThread().interrupt();
+                players[i].getThread().join();
             }
-        } catch (InterruptedException ignored) {
-        }
-        Thread.currentThread().interrupt();
+            Thread.currentThread().interrupt();
+        } catch (InterruptedException ignored) {}
     }
 
     /**
@@ -121,67 +124,10 @@ public class Dealer implements Runnable {
      */
     private void removeCardsFromTable() {
         // TODO implement
-        for (int i = 0; i < winningSet.length; i++) {
-            if (winningSet[i] != -1) {
-                table.removeCard(table.cardToSlot[winningSet[i]]);
-                winningSet[i] = -1;
-            }
-        }
-
-    }
-
-    /**
-     * Check if any cards can be removed from the deck and placed on the table.
-     */
-    private void placeCardsOnTable() {// this was syncronized
-        // TODO implement
-        Collections.shuffle(deck);
-        boolean changed = false;
-        for (int i = 0; i < env.config.tableSize; i++) {
-            int rndCard = (int) (Math.random() * deck.size());
-            if (table.slotToCard[i] == null && !deck.isEmpty()) {
-                int card = deck.remove(rndCard);
-                table.placeCard(card, i);
-                changed = true;
-            }
-        }
-        table.switchingCards = false;
-        synchronized (actionLocker) {
-            actionLocker.notifyAll();
-        }
-        if (changed) {
-            reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
-        }
-    }
-
-    /**
-     * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
-     */
-    private void sleepUntilWokenOrTimeout() {
-        // TODO implement
-        Integer playerId = null;
-        synchronized (setLocker) {
-            try {
-                long sleepTime = System.currentTimeMillis();
-                if (env.config.turnTimeoutWarningMillis < reshuffleTime - sleepTime) { //out of warning time
-                    while (table.setAnnouncements.isEmpty() && System.currentTimeMillis() - sleepTime < 900) {
-                        setLocker.wait(900);
-                    }
-                } else { //in warning time
-                    while (table.setAnnouncements.isEmpty() && System.currentTimeMillis() - sleepTime < 10) {
-                        setLocker.wait(10);
-                    }
-                }
-                playerId = table.setAnnouncements.poll();
-                setLocker.notifyAll();
-            } catch (InterruptedException ignored) {
-            }
-        }
-
-
+        Integer playerId = table.setAnnouncements.poll();
         if (playerId != null) {
             synchronized (playerShouldWait[playerId]) {
-                int[] cardsToCheck = new int[3];
+                int[] cardsToCheck = new int[env.config.featureSize];
                 int j = 0;
                 for (int i = 0; i < env.config.tableSize; i++) {
                     if (table.playersToTokens[playerId][i] == 1) {
@@ -200,6 +146,64 @@ public class Dealer implements Runnable {
                 playerShouldWait[playerId].notifyAll();
             }
         }
+        for (int i = 0; i < winningSet.length; i++) {
+            if (winningSet[i] != -1) {
+                table.removeCard(table.cardToSlot[winningSet[i]]);
+                winningSet[i] = -1;
+            }
+        }
+    }
+
+    /**
+     * Check if any cards can be removed from the deck and placed on the table.
+     */
+    private void placeCardsOnTable() {
+        // TODO implement
+        Collections.shuffle(deck);
+        int changed = 0;
+        for (int i = 0; i < env.config.tableSize; i++) {
+            int rndCard = (int) (Math.random() * deck.size());
+            if (table.slotToCard[i] == null && !deck.isEmpty()) {
+                int card = deck.remove(rndCard);
+                table.placeCard(card, i);
+                changed += 1;
+            }
+        }
+        table.switchingCards = false;
+        synchronized (actionLocker) {
+            actionLocker.notifyAll();
+        }
+        if (changed != 0) {
+//            reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
+            updateTimerDisplay(true);
+        }
+    }
+
+    /**
+     * Sleep for a fixed amount of time or until the thread is awakened for some purpose.
+     */
+    private void sleepUntilWokenOrTimeout() {
+        // TODO implement
+//        Integer playerId = null;
+        synchronized (setLocker) {
+            try {
+                //if (env.config.turnTimeoutWarningMillis < reshuffleTime - System.currentTimeMillis()) { //out of warning time
+                    long runTime = currentTimeLeft - reshuffleTime + System.currentTimeMillis(); ////////////////////////////////
+                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime >= 1) {
+                        setLocker.wait(timeToWait - runTime - 1);
+                        System.out.println("Time in sleep: " + (timeToWait - runTime - 1));
+                    }
+                //}
+//                else { //in warning time
+//                    if (table.setAnnouncements.isEmpty() && System.currentTimeMillis() - sleepTime < 1) {
+//                        setLocker.wait(1);
+//                    }
+//                }
+// //               playerId = table.setAnnouncements.poll();
+//                setLocker.notifyAll();
+            } catch (InterruptedException ignored) {
+            }
+        }
     }
 
     /**
@@ -207,12 +211,20 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement
+
         if (reset) {
             reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
+            currentTimeLeft = env.config.turnTimeoutMillis;
             env.ui.setCountdown(env.config.turnTimeoutMillis, false);
-        } else if (reshuffleTime - System.currentTimeMillis() > 0) {
-            long currentTimeLeft = reshuffleTime - System.currentTimeMillis();
+        } else if (currentTimeLeft > 0) {
+            currentTimeLeft = reshuffleTime - System.currentTimeMillis(); ////////////////////////////////////////
             env.ui.setCountdown(currentTimeLeft, currentTimeLeft <= env.config.turnTimeoutWarningMillis);
+            System.out.println("Current Time Left: " + currentTimeLeft);
+            if (currentTimeLeft > env.config.turnTimeoutWarningMillis){
+                timeToWait = 1000;
+            } else {
+                timeToWait = 10;
+            }
         }
     }
 
