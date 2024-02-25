@@ -130,8 +130,6 @@ public class Player implements Runnable {
                 // TODO: handle exception
                 System.out.println("Thread " + this.hashCode() + " has been interrupted");
             }
-
-
         }
         if (!human) try {
             aiThread.join();
@@ -148,10 +146,8 @@ public class Player implements Runnable {
         // note: this is a very, very smart AI (!)
         aiThread = new Thread(() -> {
             env.logger.info("thread " + Thread.currentThread().getName() + " starting.");
-
             while (!terminate) {
                 // TODO implement player key press simulator
-
                 if (!table.switchingCards) {
                     if (table.playerHasSet(id)) {
                         for (int i = 0; i < table.playersToTokens[id].length; i++) {
@@ -160,12 +156,10 @@ public class Player implements Runnable {
                             }
                         }
                     }
-
                     if (actions.remainingCapacity() > 0) {
                         int rndCard = (int) (Math.random() * env.config.tableSize);
                         keyPressed(rndCard);
                     }
-
                 }
             }
             env.logger.info("thread " + Thread.currentThread().getName() + " terminated.");

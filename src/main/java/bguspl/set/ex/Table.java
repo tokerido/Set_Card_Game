@@ -115,12 +115,9 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
         // TODO implement
-        //our code start here
-        if(slotToCard[slot] == null) {
             cardToSlot[card] = slot;
             slotToCard[slot] = card;
-            env.ui.placeCard(card, slot); 
-        }
+            env.ui.placeCard(card, slot);
     }
 
     /**
@@ -132,7 +129,6 @@ public class Table {
             Thread.sleep(env.config.tableDelayMillis);
         } catch (InterruptedException ignored) {}
         // TODO implement
-        //our code start here
         if(slotToCard != null) {
             int card = slotToCard[slot];
             for (int i = 0; i < env.config.players; i++) {

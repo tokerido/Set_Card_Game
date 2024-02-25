@@ -53,7 +53,6 @@ public class Dealer implements Runnable {
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
         winningSet = new int[env.config.featureSize];
         Arrays.fill(winningSet, -1);
-        //reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
         actionLocker = new Object();
         setLocker = new Object();
         playerShouldWait = new Object[env.config.players];
@@ -174,7 +173,6 @@ public class Dealer implements Runnable {
             actionLocker.notifyAll();
         }
         if (changed != 0) {
-//            reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
             updateTimerDisplay(true);
         }
     }
@@ -184,23 +182,12 @@ public class Dealer implements Runnable {
      */
     private void sleepUntilWokenOrTimeout() {
         // TODO implement
-//        Integer playerId = null;
         synchronized (setLocker) {
             try {
-                //if (env.config.turnTimeoutWarningMillis < reshuffleTime - System.currentTimeMillis()) { //out of warning time
-                    long runTime = currentTimeLeft - reshuffleTime + System.currentTimeMillis(); ////////////////////////////////
-                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime >= 1) {
+                    long runTime = currentTimeLeft - reshuffleTime + System.currentTimeMillis();
+                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime > 1) {
                         setLocker.wait(timeToWait - runTime - 1);
-                        System.out.println("Time in sleep: " + (timeToWait - runTime - 1));
                     }
-                //}
-//                else { //in warning time
-//                    if (table.setAnnouncements.isEmpty() && System.currentTimeMillis() - sleepTime < 1) {
-//                        setLocker.wait(1);
-//                    }
-//                }
-// //               playerId = table.setAnnouncements.poll();
-//                setLocker.notifyAll();
             } catch (InterruptedException ignored) {
             }
         }
@@ -217,13 +204,12 @@ public class Dealer implements Runnable {
             currentTimeLeft = env.config.turnTimeoutMillis;
             env.ui.setCountdown(env.config.turnTimeoutMillis, false);
         } else if (currentTimeLeft > 0) {
-            currentTimeLeft = reshuffleTime - System.currentTimeMillis(); ////////////////////////////////////////
+            currentTimeLeft = reshuffleTime - System.currentTimeMillis();
             env.ui.setCountdown(currentTimeLeft, currentTimeLeft <= env.config.turnTimeoutWarningMillis);
-            System.out.println("Current Time Left: " + currentTimeLeft);
             if (currentTimeLeft > env.config.turnTimeoutWarningMillis){
                 timeToWait = 1000;
             } else {
-                timeToWait = 10;
+                timeToWait = Math.min(currentTimeLeft,10);
             }
         }
     }
