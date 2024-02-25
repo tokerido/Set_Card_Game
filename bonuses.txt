@@ -35,7 +35,9 @@ config.turnTimeoutMillis < 0: display nothing.
 config.turnTimeoutMillis = 0: display a timer since the last action (reshuffle or set collected).
 Note: in modes without a countdown timer the dealer must ensure there is always at least one legal set on the table.
 
-We are not entitled to this bonus.
+we did that part by using an boolean flag and divding to cases. our game support now No Timer Mode.
+we mainly wrote the cases in "sleepUntilWokenOrTimeout" and in the place cards (if there's no set in the table).
+we checked it
 
 --------------------
 
