@@ -41,7 +41,6 @@ public class Dealer implements Runnable {
     private long reshuffleTime;
     private long currentTimeLeft;
     private long timeToWait;
-    private int[] winningSet;
     public final Object actionLocker;
     public final Object setLocker;
     public final Object[] playerShouldWait;
@@ -51,8 +50,6 @@ public class Dealer implements Runnable {
         this.table = table;
         this.players = players;
         deck = IntStream.range(0, env.config.deckSize).boxed().collect(Collectors.toList());
-        winningSet = new int[env.config.featureSize];
-        Arrays.fill(winningSet, -1);
         actionLocker = new Object();
         setLocker = new Object();
         playerShouldWait = new Object[env.config.players];
@@ -125,8 +122,9 @@ public class Dealer implements Runnable {
         // TODO implement
         Integer playerId = table.setAnnouncements.poll();
         if (playerId != null) {
+            int[] cardsToCheck = new int[env.config.featureSize];
+            boolean needToRemove = false;
             synchronized (playerShouldWait[playerId]) {
-                int[] cardsToCheck = new int[env.config.featureSize];
                 int j = 0;
                 for (int i = 0; i < env.config.tableSize; i++) {
                     if (table.playersToTokens[playerId][i] == 1) {
@@ -134,23 +132,22 @@ public class Dealer implements Runnable {
                         j++;
                     }
                 }
-                if (cardsToCheck[2] != 0 && env.util.testSet(cardsToCheck)) {
+                if (j ==env.config.featureSize && env.util.testSet(cardsToCheck)) {
                     players[playerId].point();
-                    winningSet = cardsToCheck;
                     updateTimerDisplay(true);
+                    needToRemove = true;
                 } else {
                     players[playerId].penalty();
                 }
                 table.shouldWait[playerId] = false;
                 playerShouldWait[playerId].notifyAll();
             }
-        }
-        for (int i = 0; i < winningSet.length; i++) {
-            if (winningSet[i] != -1) {
-                table.removeCard(table.cardToSlot[winningSet[i]]);
-                winningSet[i] = -1;
+            if(needToRemove) {
+            for(int i = 0; i < cardsToCheck.length; i++) {
+                    table.removeCard(table.cardToSlot[cardsToCheck[i]]);
+                }
             }
-        }
+            }
     }
 
     /**
@@ -198,13 +195,12 @@ public class Dealer implements Runnable {
      */
     private void updateTimerDisplay(boolean reset) {
         // TODO implement
-
+        currentTimeLeft = reshuffleTime - System.currentTimeMillis();
         if (reset) {
             reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
             currentTimeLeft = env.config.turnTimeoutMillis;
-            env.ui.setCountdown(env.config.turnTimeoutMillis, false);
+            env.ui.setCountdown(env.config.turnTimeoutMillis, env.config.turnTimeoutMillis <= env.config.turnTimeoutWarningMillis);
         } else if (currentTimeLeft > 0) {
-            currentTimeLeft = reshuffleTime - System.currentTimeMillis();
             env.ui.setCountdown(currentTimeLeft, currentTimeLeft <= env.config.turnTimeoutWarningMillis);
             if (currentTimeLeft > env.config.turnTimeoutWarningMillis){
                 timeToWait = 1000;

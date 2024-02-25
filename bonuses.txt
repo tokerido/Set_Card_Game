@@ -12,7 +12,7 @@ with a short description of:
 
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
-instead of using magic numbers we used the env configuration's settings so as game mangers or testers we could change the settings
+Instead of using magic numbers we used the env configuration's settings so as game mangers or testers we could change the settings
 without needing to change the game code. as example in table's constructor instead of using "12" as table's size we used env.config.tableSize
 which can be changed in config.properties file. we used it in player and dealer constructors and in each function that requires the number of
 players in the game, the number of set features, the table size and number of slots.
