@@ -2,9 +2,7 @@ package bguspl.set.ex;
 
 import bguspl.set.Env;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -45,7 +43,8 @@ public class Dealer implements Runnable {
     public final Object setLocker;
     public final Object[] playerShouldWait;
 
-    private boolean noTimeMode;
+    private final boolean noTimeMode;
+    private boolean noSetsLeft;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -60,6 +59,7 @@ public class Dealer implements Runnable {
         currentTimeLeft = env.config.turnTimeoutMillis;
         noTimeMode = env.config.turnTimeoutMillis <= 0;
         timeToWait = 1000;
+        noSetsLeft = false;
     }
 
     /**
@@ -86,12 +86,16 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-            while (!terminate && System.currentTimeMillis() < reshuffleTime) {
+            while (!terminate && (noTimeMode || System.currentTimeMillis() < reshuffleTime)) {
                 sleepUntilWokenOrTimeout();
                 updateTimerDisplay(false);
                 removeCardsFromTable();
                 placeCardsOnTable();
+                if (noSetsLeft){
+                    break;
+                }
             }
+            noSetsLeft = false;
         }
 
     /**
@@ -177,9 +181,21 @@ public class Dealer implements Runnable {
         if (changed != 0) {
             updateTimerDisplay(true);
         }
-        if (noTimeMode && env.util.findSets(Arrays.asList(table.slotToCard), 1).isEmpty()) {
-            removeAllCardsFromTable();
-            placeCardsOnTable();
+        if (noTimeMode) {
+            List<Integer> cardsOnTable = Arrays.asList(table.slotToCard);
+            if(cardsOnTable.contains(null)){
+                cardsOnTable = new ArrayList<>();
+                for (Integer card : table.slotToCard){
+                    if (card != null){
+                        cardsOnTable.add(card);
+                    }
+                }
+            }
+            noSetsLeft = env.util.findSets(cardsOnTable,1).isEmpty();
+//            if (env.util.findSets(cardsOnTable,1).isEmpty()) {
+//                removeAllCardsFromTable();
+//                placeCardsOnTable();
+//            }
         }
     }
 
