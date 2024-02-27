@@ -42,9 +42,11 @@ public class Dealer implements Runnable {
     public final Object actionLocker;
     public final Object setLocker;
     public final Object[] playerShouldWait;
-
     private final boolean noTimeMode;
     private boolean noSetsLeft;
+    public final long secInMil = 1000;
+    public final long tenMil = 10;
+    public final long oneMil = 1;
 
     public Dealer(Env env, Table table, Player[] players) {
         this.env = env;
@@ -58,7 +60,7 @@ public class Dealer implements Runnable {
         reshuffleTime = env.config.turnTimeoutMillis + System.currentTimeMillis();
         currentTimeLeft = env.config.turnTimeoutMillis;
         noTimeMode = env.config.turnTimeoutMillis <= 0;
-        timeToWait = 1000;
+        timeToWait = secInMil;
         noSetsLeft = false;
     }
 
@@ -86,17 +88,17 @@ public class Dealer implements Runnable {
      * The inner loop of the dealer thread that runs as long as the countdown did not time out.
      */
     private void timerLoop() {
-            while (!terminate && (noTimeMode || System.currentTimeMillis() < reshuffleTime)) {
-                sleepUntilWokenOrTimeout();
-                updateTimerDisplay(false);
-                removeCardsFromTable();
-                placeCardsOnTable();
-                if (noSetsLeft){
-                    break;
-                }
+        while (!terminate && (noTimeMode || System.currentTimeMillis() < reshuffleTime)) {
+            sleepUntilWokenOrTimeout();
+            updateTimerDisplay(false);
+            removeCardsFromTable();
+            placeCardsOnTable();
+            if (noSetsLeft) {
+                break;
             }
-            noSetsLeft = false;
         }
+        noSetsLeft = false;
+    }
 
     /**
      * Called when the game should be terminated.
@@ -183,19 +185,15 @@ public class Dealer implements Runnable {
         }
         if (noTimeMode) {
             List<Integer> cardsOnTable = Arrays.asList(table.slotToCard);
-            if(cardsOnTable.contains(null)){
+            if (cardsOnTable.contains(null)) {
                 cardsOnTable = new ArrayList<>();
-                for (Integer card : table.slotToCard){
-                    if (card != null){
+                for (Integer card : table.slotToCard) {
+                    if (card != null) {
                         cardsOnTable.add(card);
                     }
                 }
             }
-            noSetsLeft = env.util.findSets(cardsOnTable,1).isEmpty();
-//            if (env.util.findSets(cardsOnTable,1).isEmpty()) {
-//                removeAllCardsFromTable();
-//                placeCardsOnTable();
-//            }
+            noSetsLeft = env.util.findSets(cardsOnTable, 1).isEmpty();
         }
     }
 
@@ -208,8 +206,8 @@ public class Dealer implements Runnable {
             synchronized (setLocker) {
                 try {
                     long runTime = currentTimeLeft - reshuffleTime + System.currentTimeMillis();
-                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime > 1) {
-                        setLocker.wait(timeToWait - runTime - 1);
+                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime > oneMil) {
+                        setLocker.wait(timeToWait - runTime - oneMil);
                     }
                 } catch (InterruptedException ignored) {
                 }
@@ -220,16 +218,15 @@ public class Dealer implements Runnable {
                     if (table.setAnnouncements.isEmpty()) {
                         setLocker.wait();
                     }
+                } catch (InterruptedException ignored) {
                 }
-                catch (InterruptedException ignored) {}
             }
-        }
-        else {
+        } else {
             synchronized (setLocker) {
                 try {
-                    long runTime = System.currentTimeMillis() - currentTimeLeft;
-                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime > 1) {
-                        setLocker.wait(timeToWait - runTime - 1);
+                    long runTime = System.currentTimeMillis() - currentTimeLeft - reshuffleTime;
+                    if (table.setAnnouncements.isEmpty() && timeToWait - runTime > oneMil) {
+                        setLocker.wait(timeToWait - runTime - oneMil);
                     }
                 } catch (InterruptedException ignored) {
                 }
@@ -251,9 +248,9 @@ public class Dealer implements Runnable {
             } else if (currentTimeLeft > 0) {
                 env.ui.setCountdown(currentTimeLeft, currentTimeLeft <= env.config.turnTimeoutWarningMillis);
                 if (currentTimeLeft > env.config.turnTimeoutWarningMillis) {
-                    timeToWait = 1000;
+                    timeToWait = secInMil;
                 } else {
-                    timeToWait = Math.min(currentTimeLeft, 10);
+                    timeToWait = Math.min(currentTimeLeft, tenMil);
                 }
             }
         } else if (env.config.turnTimeoutMillis == 0) {

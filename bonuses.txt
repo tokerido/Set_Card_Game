@@ -13,20 +13,20 @@ with a short description of:
 1. Fully supporting all configuration fields and avoiding the use of magic numbers
 
 Instead of using magic numbers we used the env configuration's settings so as game mangers or testers we could change the settings
-without needing to change the game code. as example in table's constructor instead of using "12" as table's size we used env.config.tableSize
-which can be changed in config.properties file. we used it in player and dealer constructors and in each function that requires the number of
-players in the game, the number of set features, the table size and number of slots.
-we checked each of the changes with changing it on config.properties and running the game while checking the log, viewing during the game if
-it works or not and with test's like 4 ai players running without penalty.
+without needing to change the game code. As example, in the table's constructor, instead of using "12" as table's size we used "env.config.tableSize"
+which can be changed in "config.properties" file. We used it also in player and dealer constructors and in each function that requires the number of
+players in the game, the number of set features or the table size and number of slots.
+We checked each of the changes with changing it on "config.properties" and running the game while checking the log, viewing during the game if
+it works or not and with tests like 4 AI players running without penalty.
 
 --------------------
 
 2. Terminating all threads (that you created) gracefully and in reverse order to the order they were created in.
 
-In the terminate function in the dealer class we make sure that all the players are terminated by calling the terminated function
-in player class and interrupt their thread by getting it from the player. by the reverse order we createdthem (filo) by revers for loop
-for the players and then terminating the dealer thread. We used 'join' to make sure we wait to the thread's to be terminated.
-we checked it when the game was stopped after announce the winner or "keyx" pressed and by following the thread's interrupting.
+In the 'terminate' function in the dealer class we made sure that all the players are terminated by calling the 'terminate' function
+in player class and interrupt their thread by getting it from the player. This was done in the reverse order of which we the players were created (FILO), by revere 'for' loop
+for the players and then terminating the dealer thread. We used 'join' to make sure we wait to the threads to be terminated.
+We checked it when the game was stopped after announce the winner or "keyx" pressed and by following the thread's interrupting messages in the terminal and log.
 
 --------------------
 
@@ -35,9 +35,10 @@ config.turnTimeoutMillis < 0: display nothing.
 config.turnTimeoutMillis = 0: display a timer since the last action (reshuffle or set collected).
 Note: in modes without a countdown timer the dealer must ensure there is always at least one legal set on the table.
 
-we did that part by using an boolean flag and divding to cases. our game support now No Timer Mode.
-we mainly wrote the cases in "sleepUntilWokenOrTimeout" and in the place cards (if there's no set in the table).
-we checked it
+We did that part by using a boolean flag called 'noTimeMode' and dividing to cases.
+We mainly wrote the cases in 'sleepUntilWokenOrTimeout' and in the 'placeCardsOnTable' functions in the dealer, and also a few minor uses in 'timerLoop' 'updateTimerDisplay'.
+We checked it by changing the 'config.turnTimeoutMillis' to the right value for each mode, and made sure the timer runs correctly (if necessary) and the table always has
+at least one legal set.
 
 --------------------
 
@@ -45,4 +46,7 @@ we checked it
 changed on the display, key input needs to be handled, etc.) and the only threads created by you are:
 1 thread per player + 1 additional thread for non-human players.
 
-We are not entitled to this bonus.
+We made sure there are no extra threads, all the AI threads to wait until they can put another action the players threads to wait when they have no action to be done or when
+a players' set is being tested by the dealer or sleep according to the penalty they get, and the dealer thread to wait if there are no sets to be tested and the timer doesn't
+need an update. This was all implemented in the players' and dealers' run, as well as the 'sleepUntilWokenOrTimeout' function in the dealer.
+We checked it by debugging and looking that every time a thread is blocked, it's going into 'sleep' or 'wait' state.

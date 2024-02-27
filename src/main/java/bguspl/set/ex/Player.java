@@ -174,7 +174,12 @@ public class Player implements Runnable {
         // TODO implement
         terminate = true;
         if (!human) {
-            aiThread.interrupt();
+            try {
+                aiThread.interrupt();
+                aiThread.join();
+            } catch (InterruptedException ignored) {
+            }
+
         }
     }
 
@@ -221,11 +226,11 @@ public class Player implements Runnable {
 
     public void playerSleep() {
         try {
-            long startingTime = System.currentTimeMillis();
+            //long startingTime = System.currentTimeMillis();
             while (timeToSleep.get() > ZERO.get()) {
                 env.ui.setFreeze(id, timeToSleep.get());
-                Thread.sleep(Math.min(timeToSleep.get(), 500));
-                timeToSleep.compareAndSet(timeToSleep.get(), timeToSleep.get() + startingTime - System.currentTimeMillis());
+                Thread.sleep(Math.min(timeToSleep.get(), dealer.secInMil));
+                timeToSleep.compareAndSet(timeToSleep.get(), timeToSleep.get() - dealer.secInMil);
             }
             actions.clear();
             env.ui.setFreeze(id, 0);
