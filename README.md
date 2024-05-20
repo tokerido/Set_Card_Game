@@ -32,8 +32,9 @@ Set_Card_Game is a Java-based implementation of the popular card game "Set," whi
 - Correct sets are replaced with new cards from the deck, and points are awarded.
 - Players that find an incorrect set get a time freeze penalty.
 
-#### Here are a couple of examples of correct and incorrect sets:
-  ![image](https://github.com/tokerido/Set_Card_Game/assets/155316070/0080eabd-5229-4960-8d15-caa111a4c5da)
+Here are a couple of examples of correct and incorrect sets:
+
+![image](https://github.com/tokerido/Set_Card_Game/assets/155316070/0080eabd-5229-4960-8d15-caa111a4c5da)
 
 ### Synchronization
 - The game leverages Java's synchronization mechanisms to manage the interactions between player threads and the dealer thread, ensuring that all operations on the game state are thread-safe and free of concurrency issues.
@@ -48,6 +49,6 @@ The dealer's thread controls the game's progress, making adjustments as necessar
 The GUI displays the current state of the game, including the cards on the table, player scores, and any messages related to game status or player actions. The interface updates dynamically in response to game events, providing a seamless and engaging user experience.
 
 ## Copyright Notice
-© 2024 by Nitai Edelberg and Ido Toker.  
-All rights reserved. This project is a part of academic work at Ben Gurion University. Unauthorized use, copying, or distribution is prohibited.
+© 2024 by Nitai Edelberg and Ido Toker. All rights reserved.
 
+This project is a part of academic work at Ben Gurion University. Unauthorized use, copying, or distribution is prohibited.
