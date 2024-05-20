@@ -4,6 +4,7 @@
 
 Set_Card_Game is a Java-based implementation of the popular card game "Set," which involves identifying sets of cards based on common and distinct features. This project utilizes concurrency and synchronization to handle multiple players, both human and simulated, competing in real-time to find sets from a dynamically managed deck of cards.
 
+## Program General Flow
 ![image](https://github.com/tokerido/Set_Card_Game/assets/155316070/c69d3457-969c-45a3-bc75-3f4616f9d2a5)
 
 ## Key Components
@@ -44,6 +45,6 @@ The GUI displays the current state of the game, including the cards on the table
 
 ## Copyright Notice
 
-© 2024 by [Your Name].  
-All rights reserved. This project is a part of academic work at [Your University]. Unauthorized use, copying, or distribution is prohibited.
+© 2024 by Nitai Edelberg and Ido Toker.  
+All rights reserved. This project is a part of academic work at Ben Gurion University. Unauthorized use, copying, or distribution is prohibited.
 
