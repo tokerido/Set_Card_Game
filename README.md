@@ -32,7 +32,7 @@ Set_Card_Game is a Java-based implementation of the popular card game "Set," whi
 - Correct sets are replaced with new cards from the deck, and points are awarded.
 - Players that find an incorrect set get a time freeze penalty.
 
-Here are a couple of examples of correct and incorrect sets:
+**Here are a couple of examples of correct and incorrect sets:**
 ![image](https://github.com/tokerido/Set_Card_Game/assets/155316070/0080eabd-5229-4960-8d15-caa111a4c5da)
 
 ### Synchronization
